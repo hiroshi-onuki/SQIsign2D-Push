@@ -12,7 +12,7 @@ def matrix44_to_str(M):
         M[3,0], M[3,1], M[3,2], M[3,3]
     )
 
-def make_constants(p, e, ed, degs, file_name):
+def make_constants(p, e, ed, degs, degs_d, file_name):
     Fp4, Fp2, zeta4 = tp.calcFields(p)
     E0 = EllipticCurve(Fp4, [1, 0])
     Fp2d.<Fp2_i> = GF(p^2, modulus=x^2+1)
@@ -34,14 +34,30 @@ def make_constants(p, e, ed, degs, file_name):
     M44 = matrix(Z2e, [[Msd[i][j][k] for i in range(4)] for j, k in [(0, 0), (1, 0), (0, 1), (1, 1)]])
     out_file.write("M44inv = %s\n" % matrix44_to_str(M44^(-1)))
 
-   # odd torsion in E(Fp2)
+    # odd torsion in E(Fp2)
     for l, e in factor(degs):
         P, Q = tp.basis(E0, Fp2, False, l, e)
         Ms = end.action_matrices([P, Q], l^e, zeta4, Fp4)
-        Px, Py = [tp.Fp2ToFp2d(v, zeta4, Fp2_i) for v in P.xy()]
-        Qx, Qy = [tp.Fp2ToFp2d(v, zeta4, Fp2_i) for v in Q.xy()]
-        out_file.write("P%d = Point(%s, %s)\n" % (l, Px, Py))
-        out_file.write("Q%d = Point(%s, %s)\n" % (l, Qx, Qy))
+        xP = tp.Fp2ToFp2d(P.xy()[0], zeta4, Fp2_i)
+        xQ = tp.Fp2ToFp2d(Q.xy()[0], zeta4, Fp2_i)
+        xPQ = tp.Fp2ToFp2d((P - Q).xy()[0], zeta4, Fp2_i)
+        out_file.write("xP%d = Proj1(%s)\n" % (l, xP))
+        out_file.write("xQ%d = Proj1(%s)\n" % (l, xQ))
+        out_file.write("xPQ%d = Proj1(%s)\n" % (l, xPQ))
+        out_file.write("M_i_%d = %s\n" % (l, matrix_to_str(Ms[0])))
+        out_file.write("M_ij_%d = %s\n" % (l, matrix_to_str(Ms[1])))
+        out_file.write("M_1k_%d = %s\n" % (l, matrix_to_str(Ms[2])))
+
+    # odd torsion in E^t(Fp2)
+    for l, e in factor(degs_d):
+        P, Q = tp.basis(E0, Fp2, true, l, e)
+        Ms = end.action_matrices([P, Q], l^e, zeta4, Fp4)
+        xP = tp.Fp2ToFp2d(P.xy()[0], zeta4, Fp2_i)
+        xQ = tp.Fp2ToFp2d(Q.xy()[0], zeta4, Fp2_i)
+        xPQ = tp.Fp2ToFp2d((P - Q).xy()[0], zeta4, Fp2_i)
+        out_file.write("xP%d = Proj1(%s)\n" % (l, xP))
+        out_file.write("xQ%d = Proj1(%s)\n" % (l, xQ))
+        out_file.write("xPQ%d = Proj1(%s)\n" % (l, xPQ))
         out_file.write("M_i_%d = %s\n" % (l, matrix_to_str(Ms[0])))
         out_file.write("M_ij_%d = %s\n" % (l, matrix_to_str(Ms[1])))
         out_file.write("M_1k_%d = %s\n" % (l, matrix_to_str(Ms[2])))
@@ -50,24 +66,27 @@ def make_constants(p, e, ed, degs, file_name):
 
 # level1
 set_random_seed(0)
-p = 2^253 * 3^3 - 1
-e = 253
-ed = 126
-degs = 3^3
-make_constants(p, e, ed, degs, "level1torsion.txt")
+p = 2^263 * 46 - 1
+e = 264
+ed = 128
+degs = 23
+degs_d = 3*7
+make_constants(p, e, ed, degs, degs_d, "level1torsion.txt")
 
 # level3
 set_random_seed(0)
-p = 2^380 * 35 - 1
-e = 380
-ed = 189
-degs = 35
-make_constants(p, e, ed, degs, "level3torsion.txt")
+p = 2^370 * 3 * 7 * 11 - 1
+e = 370
+ed = 192
+degs = 3 * 7 * 11
+degs_d = 1
+make_constants(p, e, ed, degs, degs_d, "level3torsion.txt")
 
 # level5
 set_random_seed(0)
-p = 2^520 * 2 - 1
-e = 520
-ed = 259
-degs = 1
-make_constants(p, e, ed, degs, "level5torsion.txt")
+p = 2^492 * 7^2 * 11 - 1
+e = 492
+ed = 256
+degs = 7^2 * 11
+degs_d = 3
+make_constants(p, e, ed, degs, degs_d, "level5torsion.txt")

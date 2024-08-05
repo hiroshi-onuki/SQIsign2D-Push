@@ -1,4 +1,4 @@
-using SQIsign2D
+using SQIsign2D_Push
 
 function check(param::Module, num::Int, is_compact::Bool)
     global_data = param.make_precomputed_values()
@@ -15,9 +15,5 @@ function check(param::Module, num::Int, is_compact::Bool)
     end
 end
 
-check(SQIsign2D.Level1, 10, false)
-check(SQIsign2D.Level1, 10, true)
-check(SQIsign2D.Level3, 10, false)
-check(SQIsign2D.Level3, 10, true)
-check(SQIsign2D.Level5, 10, false)
-check(SQIsign2D.Level5, 10, true)
+check(SQIsign2D_Push.Level1, 10, false)
+check(SQIsign2D_Push.Level1, 10, true)

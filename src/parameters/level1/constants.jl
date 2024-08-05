@@ -7,7 +7,8 @@ const KLPT_signing_number_strong_approx = 3432
 const KLPT_secret_key_prime_size = 64
 const KLPT_keygen_num_gamma_trial = 64
 const KLPT_keygen_number_strong_approx = 2639
-const SQISIGN_challenge_length = ExponentFull - ExponentForTorsion
+const SQISIGN_challenge_length = 128
+const IdealToIsogeny_2_e_good_attempts = 1000
 
 const SQISIGN2D_Fp2_length = 66
 const SQISIGN2D_2a_length = Int(ceil(ExponentForTorsion/8))

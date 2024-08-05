@@ -1,5 +1,9 @@
-const p = BigInt(2)^253 * 3^3 - 1
+const p = BigInt(2)^263 * 46 - 1
 const Log2p = Int(ceil(log(2, p)))
-const ExponentFull = 253
-const ExponentForTorsion = 127
-const Cofactor = 3^3
+const ExponentFull = 264
+const ExponentForTorsion = 135
+const ExponentForIsogenyDim1 = 128
+const ExponentForIsogenyDim2 = 140
+const ExponentForIsogenyDim1Precompute = 124
+const Cofactor = 23
+const ExtraDegree = 3 * 7 * 23

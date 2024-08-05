@@ -6,7 +6,26 @@ struct DlogData
     strategy::Vector{Int}
 end
 
-# structure for precomputed values
+struct OrderData
+    d::Int
+    A::FqFieldElem
+    j_inv::FqFieldElem
+    a24_0::Proj1{FqFieldElem}
+    xP2e::Proj1{FqFieldElem}
+    xQ2e::Proj1{FqFieldElem}
+    xPQ2e::Proj1{FqFieldElem}
+    xP2e_short::Proj1{FqFieldElem}
+    xQ2e_short::Proj1{FqFieldElem}
+    xPQ2e_short::Proj1{FqFieldElem}
+    I::LeftIdeal
+    M::Matrix{BigInt}
+    connecting_deg::BigInt
+    M_sqrt_d::Matrix{BigInt}
+    tate_tableP::Vector{Vector{FqFieldElem}}
+    tate_tableQ::Vector{Vector{FqFieldElem}}
+    dlog_base::BigInt
+end
+
 struct E0Data
     A0::FqFieldElem
     A0d::FqFieldElem
@@ -18,19 +37,25 @@ struct E0Data
     xP2e::Proj1{FqFieldElem}
     xQ2e::Proj1{FqFieldElem}
     xPQ2e::Proj1{FqFieldElem}
-    DegreesOddTorsionBases::Vector{Tuple{Int, Int}}
-    OddTorsionBases::Vector{Vector{Point{FqFieldElem}}}
+    xP2e_short::Proj1{FqFieldElem}
+    xQ2e_short::Proj1{FqFieldElem}
+    xPQ2e_short::Proj1{FqFieldElem}
+    DegreesOddTorsionBases::Vector{Int}
+    ExponentsOddTorsionBases::Vector{Int}
+    OddTorsionBases::Vector{Vector{Proj1{FqFieldElem}}}
     Matrices_2e::Vector{Matrix{BigInt}}
     Matrix_2ed_inv::Matrix{BigInt}
     Matrices_odd::Vector{Vector{Matrix{Int}}}
     Weil_P2eQ2e::FqFieldElem
     isomorphism_to_A0::Function
+    dlog_data_full::DlogData
     dlog_data_chall::DlogData
     dlog_data_res::DlogData
+    tate_table::Vector{Vector{FqFieldElem}}
 end
 
+# structure for precomputed values
 struct GlobalData
-    Fp2::FqField
-    Fp2_i::FqFieldElem
     E0_data::E0Data
+    orders_data::Vector{OrderData}
 end
