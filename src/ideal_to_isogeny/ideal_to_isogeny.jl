@@ -317,6 +317,13 @@ function short_ideal_to_isogeny_for_precomputation(I::LeftIdeal, a24::Proj1{T}, 
     @assert is_infinity(xDBLe(xP2t, a24d, ExponentFull))
     @assert is_infinity(xDBLe(xP2_I, a24d, ExponentFull))
 
+    # x(R + T2) for R in the points evaluated under the isogeny
+    xT2 = xDBLe(xP2, a24d, ExponentForIsogenyDim2 - 2)
+    xPdT = ladder(1 + (BigInt(1) << (ExponentFull - 2)), xP2, a24d)
+    xQdT = ladder3pt(BigInt(1) << (ExponentFull - 2), xQ2, xP2, xPQ2, a24d)
+    xPQdT = ladder3pt((BigInt(1) << ExponentFull) - 1 - (BigInt(1) << (ExponentFull - 2)), xQ2, xP2, xPQ2, a24d)
+    xP2_IT = x_add_sub(xP2_I, xT2, a24d)
+
     # compute (2,2)-isogenies
     P1P2 = CouplePoint(xP1, xP2)
     Q1Q2 = CouplePoint(xQ1, xQ2)
@@ -326,11 +333,11 @@ function short_ideal_to_isogeny_for_precomputation(I::LeftIdeal, a24::Proj1{T}, 
     O1Qd = CouplePoint(O1, xQd)
     O1PQd = CouplePoint(O1, xPQd)
     O1P2_I = CouplePoint(O1, xP2_I)
-    xT = xDBLe(xP1, a24_0, ExponentForIsogenyDim2 - 2)
-    TPd = CouplePoint(xT, xPd)
-    TQd = CouplePoint(xT, xQd)
-    TPQd = CouplePoint(xT, xPQd)
-    TP2_I = CouplePoint(xT, xP2_I)
+    xT1 = xDBLe(xP1, a24_0, ExponentForIsogenyDim2 - 2)
+    TPd = CouplePoint(xT1, xPdT)
+    TQd = CouplePoint(xT1, xQdT)
+    TPQd = CouplePoint(xT1, xPQdT)
+    TP2_I = CouplePoint(xT1, xP2_IT)
     Es, images = product_isogeny_sqrt(a24_0, a24d, P1P2, Q1Q2, PQ1PQ2, [O1Pd, O1Qd, O1PQd, O1P2_I], [TPd, TQd, TPQd, TP2_I], ExponentForIsogenyDim2, StrategyDim2Precompute)
 
     # isomorphism to A0

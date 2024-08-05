@@ -20,6 +20,7 @@ for param in params
         println("Computing order data for d = $d")
         order = param.mod.compute_order_d(E0, d)
         push!(orders, order)
+        println(order.j_inv)
     end
 
     open("src/parameters/level$(param.level)/precomputed_order_data.jl", "w") do file
