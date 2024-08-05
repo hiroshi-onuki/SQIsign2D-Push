@@ -19,11 +19,10 @@ include("../sqisign2d_push/sqisign2d_push.jl")
 
 StrategyChallenge = compute_strategy(div(SQISIGN_challenge_length, 2) - 1, 1, 1)
 
-const StrategyDim2 = compute_strategy(ExponentForIsogenyDim2 - 2, 2, 1)
-const StrategyDim2Precompute = compute_strategy(ExponentForIsogenyDim2 - 4, 2, 1)
+const StrategyId2IsoDim2 = compute_strategy(ExponentForId2IsoDim2 - 2, 2, 1)
 const StrategiesDim1 = Dict(
     ExponentForIsogenyDim1 => compute_strategy(div(ExponentForIsogenyDim1,2) - 1, 1, 1),
-    ExponentForIsogenyDim1Precompute => compute_strategy(div(ExponentForIsogenyDim1Precompute, 2) - 1, 1, 1),
+    ExponentForId2IsoDim1 => compute_strategy(div(ExponentForId2IsoDim1, 2) - 1, 1, 1),
     SQISIGN_challenge_length => compute_strategy(div(SQISIGN_challenge_length, 2) - 1, 1, 1),
 )
 

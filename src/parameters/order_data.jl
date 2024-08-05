@@ -48,7 +48,7 @@ function compute_order_d(E0::E0Data, d::Int)
         extdeg = ExtraDegree
         D = 1
         while e > 0
-            ed = min(e, ExponentForIsogenyDim1Precompute)
+            ed = min(e, ExponentForId2IsoDim1)
             n_I_d = D * extdeg * BigInt(2)^ed
             I_d = larger_ideal(J, n_I_d)
             a24, xP, xQ, xPQ, M, beta, D, found = short_ideal_to_isogeny_for_precomputation(I_d, a24, xP, xQ, xPQ, M, D, ed, E0, is_first, Quaternion_0, 0, 0)
