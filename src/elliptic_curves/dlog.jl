@@ -26,10 +26,41 @@ function ec_bi_dlog_E0(xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, E0::E0Data) wh
     return ec_bi_dlog_E0(P, Q, E0)
 end
 
+# return n1, n2, n3, n4 such that P = [n1]P0 + [n1]Q0, Q = [n3]P0 + [n4]Q0, where (P0, Q0) is a fixed basis of E0d[2^ExponentFull]
+function ec_bi_dlog_E0d(P::Point{FqFieldElem}, Q::Point{FqFieldElem}, global_data::GlobalData, idx::Int)
+    E0 = global_data.E0_data
+    E0d = global_data.orders_data[idx]
+    t1 = Tate_pairing_P0(P, E0d.tate_tableQ, Cofactor)
+    t2 = Tate_pairing_P0(P, E0d.tate_tableP, Cofactor)
+    t3 = Tate_pairing_P0(Q, E0d.tate_tableQ, Cofactor)
+    t4 = Tate_pairing_P0(Q, E0d.tate_tableP, Cofactor)
+
+    n1 = -fq_dlog_power_of_2_opt(t1, E0.dlog_data_full) * E0d.dlog_base
+    n2 = fq_dlog_power_of_2_opt(t2, E0.dlog_data_full) * E0d.dlog_base
+    n3 = -fq_dlog_power_of_2_opt(t3, E0.dlog_data_full) * E0d.dlog_base
+    n4 = fq_dlog_power_of_2_opt(t4, E0.dlog_data_full) * E0d.dlog_base
+
+    return n1, n2, n3, n4
+end
+
+# return n1, n2, n3, n4 such that P = [n1]P0 + [n1]Q0, Q = [n3]P0 + [n4]Q0, where (P0, Q0) is a fixed basis of E0d[2^ExponentFull]
+function ec_bi_dlog_E0d(xP::Proj1{FqFieldElem}, xQ::Proj1{FqFieldElem}, xPQ::Proj1{FqFieldElem}, global_data::GlobalData, idx::Int)
+    E0d = global_data.orders_data[idx]
+    A0 = E0d.A
+    P = Point(A0, xP)
+    Q = Point(A0, xQ)
+    PQ = add(P, -Q, Proj1(A0))
+    if !(xPQ == Proj1(PQ.X, PQ.Z))
+        Q = -Q
+    end
+
+    return ec_bi_dlog_E0d(P, Q, global_data, idx)
+end
+
 # return n1, n2, n3, n4 such that P = [n1]P0 + [n1]Q0, Q = [n3]P0 + [n4]Q0
 # on E_A[2^SQISIGN_challenge_length]
-function ec_bi_dlog_commitment(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, 
-                    xPb::Proj1{T}, xQb::Proj1{T}, xPQb::Proj1{T}, E0::E0Data) where T <: RingElem
+function ec_bi_dlog(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, 
+                    xPb::Proj1{T}, xQb::Proj1{T}, xPQb::Proj1{T}, e, dlog_data) where T <: RingElem
     P = Point(A, xP)
     Q = Point(A, xQ)
     PQ = add(P, -Q, Proj1(A))
@@ -43,22 +74,23 @@ function ec_bi_dlog_commitment(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T},
         Qb = -Qb
     end
 
-    base = Weil_pairing_2power(A, Pb, Qb, SQISIGN_challenge_length)
-    w1 = Weil_pairing_2power(A, P, Qb, SQISIGN_challenge_length)
-    w2 = Weil_pairing_2power(A, Pb, P, SQISIGN_challenge_length)
-    w3 = Weil_pairing_2power(A, Q, Qb, SQISIGN_challenge_length)
-    w4 = Weil_pairing_2power(A, Pb, Q, SQISIGN_challenge_length)
+    base = Weil_pairing_2power(A, Pb, Qb, e)
+    w1 = Weil_pairing_2power(A, P, Qb, e)
+    w2 = Weil_pairing_2power(A, Pb, P, e)
+    w3 = Weil_pairing_2power(A, Q, Qb, e)
+    w4 = Weil_pairing_2power(A, Pb, Q, e)
 
-    n0 = fq_dlog_power_of_2_opt(base, E0.dlog_data_chall)
-    n1 = fq_dlog_power_of_2_opt(w1, E0.dlog_data_chall)
-    n2 = fq_dlog_power_of_2_opt(w2, E0.dlog_data_chall)
-    n3 = fq_dlog_power_of_2_opt(w3, E0.dlog_data_chall)
-    n4 = fq_dlog_power_of_2_opt(w4, E0.dlog_data_chall)
-    n0inv = invmod(n0, BigInt(2)^SQISIGN_challenge_length)
-    n1 = (n1 * n0inv) % BigInt(2)^SQISIGN_challenge_length
-    n2 = (n2 * n0inv) % BigInt(2)^SQISIGN_challenge_length
-    n3 = (n3 * n0inv) % BigInt(2)^SQISIGN_challenge_length
-    n4 = (n4 * n0inv) % BigInt(2)^SQISIGN_challenge_length
+    n0 = fq_dlog_power_of_2_opt(base, dlog_data)
+    n1 = fq_dlog_power_of_2_opt(w1, dlog_data)
+    n2 = fq_dlog_power_of_2_opt(w2, dlog_data)
+    n3 = fq_dlog_power_of_2_opt(w3, dlog_data)
+    n4 = fq_dlog_power_of_2_opt(w4, dlog_data)
+    two_e = BigInt(2) << e
+    n0inv = invmod(n0, two_e)
+    n1 = (n1 * n0inv) % two_e
+    n2 = (n2 * n0inv) % two_e
+    n3 = (n3 * n0inv) % two_e
+    n4 = (n4 * n0inv) % two_e
 
     return n1, n2, n3, n4
 end

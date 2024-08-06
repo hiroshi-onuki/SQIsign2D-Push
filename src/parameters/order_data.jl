@@ -95,9 +95,9 @@ function compute_order(Fp2::FqField, E0::E0Data, order_data::Function)
     a24 = A_to_a24(A)
 
     xP, xQ, xPQ = torsion_basis(a24, ExponentFull)
-    xPs = xDBLe(xP, a24, ExponentFull - ExponentForTorsion)
-    xQs = xDBLe(xQ, a24, ExponentFull - ExponentForTorsion)
-    xPQs = xDBLe(xPQ, a24, ExponentFull - ExponentForTorsion)
+    xPs = xDBLe(xP, a24, ExponentFull - ExponentForId2IsoDim2 - 2)
+    xQs = xDBLe(xQ, a24, ExponentFull - ExponentForId2IsoDim2 - 2)
+    xPQs = xDBLe(xPQ, a24, ExponentFull - ExponentForId2IsoDim2 - 2)
 
     P = Point(A, xP)
     Q = Point(A, xQ)

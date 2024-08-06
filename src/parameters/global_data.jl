@@ -14,9 +14,9 @@ struct OrderData
     xP2e::Proj1{FqFieldElem}
     xQ2e::Proj1{FqFieldElem}
     xPQ2e::Proj1{FqFieldElem}
-    xP2e_short::Proj1{FqFieldElem}
-    xQ2e_short::Proj1{FqFieldElem}
-    xPQ2e_short::Proj1{FqFieldElem}
+    xP2e_id2iso_d2::Proj1{FqFieldElem}
+    xQ2e_id2iso_d2::Proj1{FqFieldElem}
+    xPQ2e_id2iso_d2::Proj1{FqFieldElem}
     I::LeftIdeal
     M::Matrix{BigInt}
     connecting_deg::BigInt
@@ -37,19 +37,21 @@ struct E0Data
     xP2e::Proj1{FqFieldElem}
     xQ2e::Proj1{FqFieldElem}
     xPQ2e::Proj1{FqFieldElem}
-    xP2e_short::Proj1{FqFieldElem}
-    xQ2e_short::Proj1{FqFieldElem}
-    xPQ2e_short::Proj1{FqFieldElem}
+    xP2e_id2iso_d2::Proj1{FqFieldElem}
+    xQ2e_id2iso_d2::Proj1{FqFieldElem}
+    xPQ2e_id2iso_d2::Proj1{FqFieldElem}
     DegreesOddTorsionBases::Vector{Int}
     ExponentsOddTorsionBases::Vector{Int}
     OddTorsionBases::Vector{Vector{Proj1{FqFieldElem}}}
     Matrices_2e::Vector{Matrix{BigInt}}
     Matrix_2ed_inv::Matrix{BigInt}
+    Matrix_2ed2_inv::Matrix{BigInt}
     Matrices_odd::Vector{Vector{Matrix{Int}}}
     Weil_P2eQ2e::FqFieldElem
     isomorphism_to_A0::Function
     dlog_data_full::DlogData
     dlog_data_chall::DlogData
+    dlog_data_chall2::DlogData
     dlog_data_res::DlogData
     tate_table::Vector{Vector{FqFieldElem}}
 end

@@ -50,24 +50,85 @@ function auxiliary_path(a24::Proj1{T}, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}
 end
 
 function key_gen(global_data::GlobalData)
-    D_sec = random_secret_prime()
-    a24, xP, xQ, xPQ, odd_images, I_sec = RandIsogImages(D_sec, global_data, true)
-    a24, images = Montgomery_normalize(a24, vcat([xP, xQ, xPQ], odd_images))
-    xP, xQ, xPQ = images[1:3]
-    odd_images = images[4:end]
-    A = Montgomery_coeff(a24)
+    two_to_chall = BigInt(1) << SQISIGN_challenge_length
+    a24_0 = global_data.E0_data.a24_0
+    xP0, xQ0, xPQ0 = global_data.E0_data.xP2e, global_data.E0_data.xQ2e, global_data.E0_data.xPQ2e
+    xP0c2 = xDBLe(xP0, a24_0, ExponentFull - 2*SQISIGN_challenge_length)
+    xQ0c2 = xDBLe(xQ0, a24_0, ExponentFull - 2*SQISIGN_challenge_length)
+    xPQ0c2 = xDBLe(xPQ0, a24_0, ExponentFull - 2*SQISIGN_challenge_length)
+    xP0c = xDBLe(xP0c2, a24_0, SQISIGN_challenge_length)
+    xQ0c = xDBLe(xQ0c2, a24_0, SQISIGN_challenge_length)
+    xPQ0c = xDBLe(xPQ0c2, a24_0, SQISIGN_challenge_length)
 
-    nl = length(global_data.E0_data.DegreesOddTorsionBases)
-    Ms = Vector{Matrix{Int}}(undef, nl)
-    for i in 1:nl
-        l, e = global_data.E0_data.DegreesOddTorsionBases[i]
-        xPodd, xQodd, xPQodd = torsion_basis(A, l, e)
-        xPim, xQim, xPQim = odd_images[3*(i-1)+1:3*i]
-        a, b, c, d = bi_dlog_odd_prime_power(A, xPim, xQim, xPQim, xPodd, xQodd, xPQodd, l, e)
-        Ms[i] = [a c; b d]
+    s0, s1 = rand(1:two_to_chall), rand(1:two_to_chall)
+
+    # the first 2^c-isogeny
+    K0 = ladder3pt(s0, xP0c, xQ0c, xPQ0c, a24_0)
+    a24m, images = two_e_iso(a24_0, K0, SQISIGN_challenge_length, [xP0c2, xQ0c2, xPQ0c2], StrategyChallenge)
+    xP0m, xQ0m, xPQ0m = images[1:3]
+
+    # solving the DLog problem
+    xPm, xQm, xPQm = torsion_basis(a24m, ExponentFull)
+    xPm = xDBLe(xPm, a24m, ExponentFull - 2*SQISIGN_challenge_length)
+    xQm = xDBLe(xQm, a24m, ExponentFull - 2*SQISIGN_challenge_length)
+    xPQm = xDBLe(xPQm, a24m, ExponentFull - 2*SQISIGN_challenge_length)
+    if is_infinity(xDBLe(xP0m, a24m, 2*SQISIGN_challenge_length - 1))
+        xP0m_tmp = xADD(xP0m, xQ0m, xPQ0m)
+        xQ0m_tmp, xPQ0m_tmp = xQ0m, xP0m
+        tmp_type = 1
+    elseif is_infinity(xDBLe(xQ0m, a24m, 2*SQISIGN_challenge_length - 1))
+        xQ0m_tmp = xADD(xQ0m, xP0m, xPQ0m)
+        xP0m_tmp, xPQ0m_tmp = xP0m, xQ0m
+        tmp_type = 2
+    else
+        xP0m_tmp, xQ0m_tmp, xPQ0m_tmp = xP0m, xQ0m, xPQ0m
+        tmp_type = 0
     end
+    n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m_tmp, xQ0m_tmp, xPQ0m_tmp, xPm, xQm, xPQm, 2*SQISIGN_challenge_length, global_data.E0_data.dlog_data_chall2)
+    if tmp_type == 1
+        n1 = n1 - n3
+        n2 = n2 - n4
+    elseif tmp_type == 2
+        n3 = n3 - n1
+        n4 = n4 - n2
+    end
+    @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
+    @assert xQ0m == linear_comb_2_e(n3, n4, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
+    @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
 
-    return Montgomery_coeff(a24), (I_sec, D_sec, xP, xQ, xPQ, odd_images, Ms)
+    # the second 2^c-isogeny
+    xPm_c = xDBLe(xPm, a24m, SQISIGN_challenge_length)
+    xQm_c = xDBLe(xQm, a24m, SQISIGN_challenge_length)
+    xPQm_c = xDBLe(xPQm, a24m, SQISIGN_challenge_length)
+    K1 = ladder3pt(s1, xPm_c, xQm_c, xPQm_c, a24m)
+    a24pub, _ = two_e_iso(a24m, K1, SQISIGN_challenge_length, Proj1{FqFieldElem}[], StrategyChallenge)
+
+    # compute the ideal corresponding to the composition of the two isogenies
+    @assert n1 % 2 == 1 || n2 % 2 == 1 || n3 % 2 == 1 || n4 % 2 == 1
+    a, b, c, d = global_data.E0_data.Matrix_2ed2_inv * [-n2 + n1*s1, 0, -n4 + n3*s1, 0]
+    alpha = QOrderElem(a, b, c, d)
+    @assert gcd(alpha) % 2 == 1
+    I = LeftIdeal(alpha, two_to_chall << SQISIGN_challenge_length)
+
+    # ideal to isogeny
+    a24 = a24_0
+    xP, xQ, xPQ = xP0, xQ0, xPQ0
+    M = BigInt[1 0; 0 1]
+    D = 1
+    e = 2 * SQISIGN_challenge_length
+    while e > 0
+        println(norm(I))
+        ed = min(e, ExponentForId2IsoDim1)
+        is_normalized = e <= ExponentForId2IsoDim1
+        n_I_d = D * BigInt(2)^ed
+        I_d = larger_ideal(I, n_I_d)
+        a24, xP, xQ, xPQ, M, beta, D = short_ideal_to_isogeny(I_d, a24, xP, xQ, xPQ, M, D, ed, global_data, is_normalized, Quaternion_0, 0, 0)
+        I = ideal_transform(I, beta, n_I_d)
+        e -= ed
+    end
+    a24pub, _ = Montgomery_normalize(a24pub, Proj1{FqFieldElem}[])
+    @assert a24 == a24pub
+    return a24, (I, D, xP, xQ, xPQ, xP0, xQ0, xPQ0)
 end
 
 function commitment(global_data::GlobalData)

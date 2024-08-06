@@ -32,7 +32,10 @@ def make_constants(p, e, ed, degs, degs_d, file_name):
     Msd = [[[1, 0], [0, 1]]] + Ms
     Z2e = quotient(ZZ, 2^ed)
     M44 = matrix(Z2e, [[Msd[i][j][k] for i in range(4)] for j, k in [(0, 0), (1, 0), (0, 1), (1, 1)]])
-    out_file.write("M44inv = %s\n" % matrix44_to_str(M44^(-1)))
+    out_file.write("M44inv_chall = %s\n" % matrix44_to_str(M44^(-1)))
+    Z2e = quotient(ZZ, 2^(2*ed))
+    M44 = matrix(Z2e, [[Msd[i][j][k] for i in range(4)] for j, k in [(0, 0), (1, 0), (0, 1), (1, 1)]])
+    out_file.write("M44inv_chall2 = %s\n" % matrix44_to_str(M44^(-1)))
 
     # odd torsion in E(Fp2)
     for l, e in factor(degs):

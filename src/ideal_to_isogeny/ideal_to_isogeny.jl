@@ -45,7 +45,7 @@ end
 function short_ideal_to_isogeny(I::LeftIdeal, a24::Proj1{T}, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T},
     M::Matrix{BigInt}, D::Integer, e::Int, global_data::GlobalData,
     is_normalized::Bool, precomp_beta::QOrderElem, precomp_a::Integer, precomp_b::Integer) where T <: RingElem
-    E0 = global_data.E0
+    E0 = global_data.E0_data
     Fp2 = parent(a24.X)
     xPd = xDBLe(xP, a24, ExponentFull - e)
     xQd = xDBLe(xQ, a24, ExponentFull - e)
@@ -66,9 +66,9 @@ function short_ideal_to_isogeny(I::LeftIdeal, a24::Proj1{T}, xP::Proj1{T}, xQ::P
 
     # compute beta in I s.t. J := I*\bar{beta}/n(I) has norm 2^ExpTor - a^2 - b^2
     a24_0 = E0.a24_0
-    xP0 = E0.xP2e_short
-    xQ0 = E0.xQ2e_short
-    xPQ0 = E0.xPQ2e_short
+    xP0 = E0.xP2e_id2iso_d2
+    xQ0 = E0.xQ2e_id2iso_d2
+    xPQ0 = E0.xPQ2e_id2iso_d2
     Mc = BigInt[1 0; 0 1]
     M_sqrt_d = E0.Matrices_2e[1]
     d = 1
@@ -83,9 +83,9 @@ function short_ideal_to_isogeny(I::LeftIdeal, a24::Proj1{T}, xP::Proj1{T}, xQ::P
             E0d = global_data.orders_data[order_id]
             d = E0d.d
             a24_0 = E0d.a24_0
-            xP0 = E0d.xP2e_short
-            xQ0 = E0d.xQ2e_short
-            xPQ0 = E0d.xPQ2e_short
+            xP0 = E0d.xP2e_id2iso_d2
+            xQ0 = E0d.xQ2e_id2iso_d2
+            xPQ0 = E0d.xPQ2e_id2iso_d2
             M_sqrt_d = E0d.M_sqrt_d
             cor_func_d(argN) = sum_of_two_squares_d(BigInt(2)^ExponentForId2IsoDim2 - argN, d)
             nI = BigInt(2)^e * D * E0d.connecting_deg
@@ -108,15 +108,15 @@ function short_ideal_to_isogeny(I::LeftIdeal, a24::Proj1{T}, xP::Proj1{T}, xQ::P
     xP2 = linear_comb_2_e(c11, c21, xP2t, xQ2t, xPQ2t, a24d, ExponentFull)
     xQ2 = linear_comb_2_e(c12, c22, xP2t, xQ2t, xPQ2t, a24d, ExponentFull)
     xPQ2 = linear_comb_2_e(c11-c12, c21-c22, xP2t, xQ2t, xPQ2t, a24d, ExponentFull)
-    xP2 = xDBLe(xP2, a24d, ExponentFull - e - ExponentForTorsion)
-    xQ2 = xDBLe(xQ2, a24d, ExponentFull - e - ExponentForTorsion)
-    xPQ2 = xDBLe(xPQ2, a24d, ExponentFull - e - ExponentForTorsion)
+    xP2 = xDBLe(xP2, a24d, ExponentFull - e - ExponentForId2IsoDim2 - 2)
+    xQ2 = xDBLe(xQ2, a24d, ExponentFull - e - ExponentForId2IsoDim2 - 2)
+    xPQ2 = xDBLe(xPQ2, a24d, ExponentFull - e - ExponentForId2IsoDim2 - 2)
 
     # compute the images of the basis of E_0[2^ExponentFull] under norm(I_2)(a + bi)
     c11, c21, c12, c22 = D * ([a 0; 0 a] + b * M_sqrt_d)
-    xP1 = linear_comb_2_e(c11, c21, xP0, xQ0, xPQ0, a24_0, ExponentForTorsion)
-    xQ1 = linear_comb_2_e(c12, c22, xP0, xQ0, xPQ0, a24_0, ExponentForTorsion)
-    xPQ1 = linear_comb_2_e(c11-c12, c21-c22, xP0, xQ0, xPQ0, a24_0, ExponentForTorsion)
+    xP1 = linear_comb_2_e(c11, c21, xP0, xQ0, xPQ0, a24_0, ExponentForId2IsoDim2 + 2)
+    xQ1 = linear_comb_2_e(c12, c22, xP0, xQ0, xPQ0, a24_0, ExponentForId2IsoDim2 + 2)
+    xPQ1 = linear_comb_2_e(c11-c12, c21-c22, xP0, xQ0, xPQ0, a24_0, ExponentForId2IsoDim2 + 2)
 
     # fixed basis of E'[2^ExponentFull]
     xPd, xQd, xPQd = torsion_basis(a24d, ExponentFull)
@@ -132,7 +132,7 @@ function short_ideal_to_isogeny(I::LeftIdeal, a24::Proj1{T}, xP::Proj1{T}, xQ::P
     O1PQd = CouplePoint(O1, xPQd)
     eval_points = [O1Pd, O1Qd, O1PQd]
     order_id == 0 && push!(eval_points, CouplePoint(O1, xP2_I))
-    Es, images = product_isogeny(a24_0, a24d, P1P2, Q1Q2, PQ1PQ2, eval_points, ExponentForId2IsoDim2, StrategyDim2)
+    Es, images = product_isogeny(a24_0, a24d, P1P2, Q1Q2, PQ1PQ2, eval_points, ExponentForId2IsoDim2, StrategyId2IsoDim2)
 
     # isomorphism to E0 or E0d
     if order_id == 0
