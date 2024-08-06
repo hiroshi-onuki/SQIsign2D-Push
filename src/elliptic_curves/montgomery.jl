@@ -2,7 +2,7 @@ export xDBL, xADD, xDBLADD, xDBLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_2power, random_point_order_l,
     Montgomery_coeff, A_to_a24, a24_to_A, jInvariant_a24, jInvariant_A,
     two_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
-    Montgomery_normalize, complete_baisis
+    Montgomery_normalize, complete_basis
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -529,7 +529,7 @@ end
 
 # Algorithm 2 in SQIsign documentation
 # return a fixed basis (P, Q) of E[2^e] from P
-function complete_baisis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, e::Int) where T <: RingElem
+function complete_basis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, e::Int) where T <: RingElem
     F = parent(a24.X)
     p = Integer(characteristic(F))
     N = (p + 1) >> e
@@ -560,7 +560,7 @@ end
 
 # Algorithm 2 in SQIsign documentation
 # return a fixed basis (P, Q) of E[l^e] from P
-function complete_baisis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, l::Int, e::Int) where T <: RingElem
+function complete_basis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, l::Int, e::Int) where T <: RingElem
     F = parent(a24.X)
     p = Integer(characteristic(F))
     N = div((p + 1), l^e)
@@ -604,7 +604,7 @@ function torsion_basis(a24::Proj1{T}, e::Int) where T <: RingElem
             end
         end
     end
-    return complete_baisis(a24, P, Pd, x, e)
+    return complete_basis(a24, P, Pd, x, e)
 end
 
 # Algorithm 3 in SQIsign documentation
@@ -636,7 +636,7 @@ function torsion_basis(A::T, l::Int, e::Int) where T <: RingElem
             end
         end
     end
-    return complete_baisis(a24, P, Pd, x, l, e)
+    return complete_basis(a24, P, Pd, x, l, e)
 end
 
 # isomorphism from Montgomery curnve with a24 to Montgomery curve mapping P4 to (1, *)

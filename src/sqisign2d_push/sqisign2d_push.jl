@@ -68,18 +68,11 @@ function key_gen(global_data::GlobalData)
     xP0m, xQ0m, xPQ0m = images[1:3]
 
     # solving the DLog problem
-    xPm, xQm, xPQm = torsion_basis(a24m, ExponentFull)
-    xPm = xDBLe(xPm, a24m, ExponentFull - 2*SQISIGN_challenge_length)
-    xQm = xDBLe(xQm, a24m, ExponentFull - 2*SQISIGN_challenge_length)
-    xPQm = xDBLe(xPQm, a24m, ExponentFull - 2*SQISIGN_challenge_length)
+    xQm, xPm, xPQm = complete_basis(a24m, xQ0m, xDBLe(xQ0m, a24m, 2*SQISIGN_challenge_length-1), parent(a24_0.X)(1), 2*SQISIGN_challenge_length)
     if is_infinity(xDBLe(xP0m, a24m, 2*SQISIGN_challenge_length - 1))
         xP0m_tmp = xADD(xP0m, xQ0m, xPQ0m)
         xQ0m_tmp, xPQ0m_tmp = xQ0m, xP0m
         tmp_type = 1
-    elseif is_infinity(xDBLe(xQ0m, a24m, 2*SQISIGN_challenge_length - 1))
-        xQ0m_tmp = xADD(xQ0m, xP0m, xPQ0m)
-        xP0m_tmp, xPQ0m_tmp = xP0m, xQ0m
-        tmp_type = 2
     else
         xP0m_tmp, xQ0m_tmp, xPQ0m_tmp = xP0m, xQ0m, xPQ0m
         tmp_type = 0
@@ -88,9 +81,6 @@ function key_gen(global_data::GlobalData)
     if tmp_type == 1
         n1 = n1 - n3
         n2 = n2 - n4
-    elseif tmp_type == 2
-        n3 = n3 - n1
-        n4 = n4 - n2
     end
     @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
     @assert xQ0m == linear_comb_2_e(n3, n4, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
