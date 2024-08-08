@@ -4,6 +4,7 @@ function check(param::Module, num::Int, is_compact::Bool)
     global_data = param.make_precomputed_values()
     for i in 1:num
         pk, sk = param.key_gen(global_data)
+        println(i)
         #=
         m = "hello"
         sign = param.signing(pk, sk, m, global_data, is_compact)

@@ -69,21 +69,15 @@ function key_gen(global_data::GlobalData)
 
     # solving the DLog problem
     xQm, xPm, xPQm = complete_basis(a24m, xQ0m, xDBLe(xQ0m, a24m, 2*SQISIGN_challenge_length-1), parent(a24_0.X)(1), 2*SQISIGN_challenge_length)
-    if is_infinity(xDBLe(xP0m, a24m, 2*SQISIGN_challenge_length - 1))
-        xP0m_tmp = xADD(xP0m, xQ0m, xPQ0m)
-        xQ0m_tmp, xPQ0m_tmp = xQ0m, xP0m
-        tmp_type = 1
+    if s0 % 2 == 0
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPQ0m, xQ0m, xP0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data_chall2)
+        n1 = -n1 + n3
+        n2 = -n2 + n4
     else
-        xP0m_tmp, xQ0m_tmp, xPQ0m_tmp = xP0m, xQ0m, xPQ0m
-        tmp_type = 0
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m, xQ0m, xPQ0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data_chall2)
     end
-    n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m_tmp, xQ0m_tmp, xPQ0m_tmp, xPm, xQm, xPQm, 2*SQISIGN_challenge_length, global_data.E0_data.dlog_data_chall2)
-    if tmp_type == 1
-        n1 = n1 - n3
-        n2 = n2 - n4
-    end
+    @assert n3 == 0 && (n4 == 1 || (n4 + 1) % BigInt(2)<<2*SQISIGN_challenge_length == 0)
     @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
-    @assert xQ0m == linear_comb_2_e(n3, n4, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
     @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
 
     # the second 2^c-isogeny
@@ -107,7 +101,6 @@ function key_gen(global_data::GlobalData)
     D = 1
     e = 2 * SQISIGN_challenge_length
     while e > 0
-        println(norm(I))
         ed = min(e, ExponentForId2IsoDim1)
         is_normalized = e <= ExponentForId2IsoDim1
         n_I_d = D * BigInt(2)^ed

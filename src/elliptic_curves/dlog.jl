@@ -58,9 +58,8 @@ function ec_bi_dlog_E0d(xP::Proj1{FqFieldElem}, xQ::Proj1{FqFieldElem}, xPQ::Pro
 end
 
 # return n1, n2, n3, n4 such that P = [n1]P0 + [n1]Q0, Q = [n3]P0 + [n4]Q0
-# on E_A[2^SQISIGN_challenge_length]
 function ec_bi_dlog(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, 
-                    xPb::Proj1{T}, xQb::Proj1{T}, xPQb::Proj1{T}, e, dlog_data) where T <: RingElem
+                    xPb::Proj1{T}, xQb::Proj1{T}, xPQb::Proj1{T}, dlog_data::DlogData) where T <: RingElem
     P = Point(A, xP)
     Q = Point(A, xQ)
     PQ = add(P, -Q, Proj1(A))
@@ -74,6 +73,7 @@ function ec_bi_dlog(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T},
         Qb = -Qb
     end
 
+    e = dlog_data.e
     base = Weil_pairing_2power(A, Pb, Qb, e)
     w1 = Weil_pairing_2power(A, P, Qb, e)
     w2 = Weil_pairing_2power(A, Pb, P, e)
@@ -96,7 +96,7 @@ function ec_bi_dlog(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T},
 end
 
 # return n1, n2 such that P = [n1]P0 + [n2]Q0
-function ec_bi_dlog_challenge(A::T, xP::Proj1{T}, xP0::Proj1{T}, xQ0::Proj1{T}, xPQ0::Proj1{T}, E0::E0Data) where T <: RingElem
+function ec_bi_dlog(A::T, xP::Proj1{T}, xP0::Proj1{T}, xQ0::Proj1{T}, xPQ0::Proj1{T}, dlog_data::DlogData) where T <: RingElem
     P = Point(A, xP)
     P0 = Point(A, xP0)
     Q0 = Point(A, xQ0)
@@ -104,16 +104,17 @@ function ec_bi_dlog_challenge(A::T, xP::Proj1{T}, xP0::Proj1{T}, xQ0::Proj1{T}, 
     if !(xPQ0 == Proj1(PQ0.X, PQ0.Z))
         Q0 = -Q0
     end
-    base = Weil_pairing_2power(A, P0, Q0, SQISIGN_challenge_length)
-    w1 = Weil_pairing_2power(A, P, Q0, SQISIGN_challenge_length)
-    w2 = Weil_pairing_2power(A, P0, P, SQISIGN_challenge_length)
+    e = dlog_data.e
+    base = Weil_pairing_2power(A, P0, Q0, e)
+    w1 = Weil_pairing_2power(A, P, Q0, e)
+    w2 = Weil_pairing_2power(A, P0, P, e)
 
-    n0 = fq_dlog_power_of_2_opt(base, E0.dlog_data_chall)
-    n1 = fq_dlog_power_of_2_opt(w1, E0.dlog_data_chall)
-    n2 = fq_dlog_power_of_2_opt(w2, E0.dlog_data_chall)
-    n0inv = invmod(n0, BigInt(2)^SQISIGN_challenge_length)
+    n0 = fq_dlog_power_of_2_opt(base, dlog_data)
+    n1 = fq_dlog_power_of_2_opt(w1, dlog_data)
+    n2 = fq_dlog_power_of_2_opt(w2, dlog_data)
+    n0inv = invmod(n0, BigInt(2)^e)
 
-    return (n1 * n0inv) % BigInt(2)^SQISIGN_challenge_length, (n2 * n0inv) % BigInt(2)^SQISIGN_challenge_length
+    return (n1 * n0inv) % BigInt(2)^e, (n2 * n0inv) % BigInt(2)^e
 end 
 
 # return n1, n2, n3, n4 such that P = [n1]P0 + [n1]Q0, Q = [n3]P0 + [n4]Q0
