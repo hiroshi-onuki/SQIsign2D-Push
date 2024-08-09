@@ -85,7 +85,7 @@ function make_E0_data()
     dlog_data_full = DlogData(ExponentFull, window_size, fq_dlog_table1, fq_dlog_table2, strategy_dlog)
 
     dlog_data = Dict{Int, DlogData}(ExponentFull => dlog_data_full)
-    for d in [SQISIGN_challenge_length, 2*SQISIGN_challenge_length, ExponentForDim1 + ExponentForDim2, ExponentForDim2]
+    for d in [SQISIGN_challenge_length, 2*SQISIGN_challenge_length, ExponentSum, ExponentForDim2]
         base = tp_P2e_Q2e^(BigInt(2)^(ExponentFull - d))
         fq_dlog_table1, fq_dlog_table2 = make_dlog_table(base, d, window_size)
         strategy_dlog = compute_strategy(div(d, window_size) - 1, window_size, 1)

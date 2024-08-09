@@ -53,37 +53,39 @@ function key_gen(global_data::GlobalData)
     two_to_chall = BigInt(1) << SQISIGN_challenge_length
     a24_0 = global_data.E0_data.a24_0
     xP0, xQ0, xPQ0 = global_data.E0_data.xP2e, global_data.E0_data.xQ2e, global_data.E0_data.xPQ2e
-    xP0c2 = xDBLe(xP0, a24_0, ExponentFull - 2*SQISIGN_challenge_length)
-    xQ0c2 = xDBLe(xQ0, a24_0, ExponentFull - 2*SQISIGN_challenge_length)
-    xPQ0c2 = xDBLe(xPQ0, a24_0, ExponentFull - 2*SQISIGN_challenge_length)
-    xP0c = xDBLe(xP0c2, a24_0, SQISIGN_challenge_length)
-    xQ0c = xDBLe(xQ0c2, a24_0, SQISIGN_challenge_length)
-    xPQ0c = xDBLe(xPQ0c2, a24_0, SQISIGN_challenge_length)
+    xP0 = xDBLe(xP0, a24_0, ExponentFull - ExponentSum)
+    xQ0 = xDBLe(xQ0, a24_0, ExponentFull - ExponentSum)
+    xPQ0 = xDBLe(xPQ0, a24_0, ExponentFull - ExponentSum)
+    xP0c = xDBLe(xP0, a24_0, ExponentSum - SQISIGN_challenge_length)
+    xQ0c = xDBLe(xQ0, a24_0, ExponentSum - SQISIGN_challenge_length)
+    xPQ0c = xDBLe(xPQ0, a24_0, ExponentSum - SQISIGN_challenge_length)
 
     s0, s1 = rand(1:two_to_chall), rand(1:two_to_chall)
 
     # the first 2^c-isogeny
     K0 = ladder3pt(s0, xP0c, xQ0c, xPQ0c, a24_0)
-    a24m, images = two_e_iso(a24_0, K0, SQISIGN_challenge_length, [xP0c2, xQ0c2, xPQ0c2], StrategiesDim1[SQISIGN_challenge_length])
+    a24m, images = two_e_iso(a24_0, K0, SQISIGN_challenge_length, [xP0, xQ0, xPQ0], StrategiesDim1[SQISIGN_challenge_length])
     xP0m, xQ0m, xPQ0m = images[1:3]
 
     # solving the DLog problem
-    xQm, xPm, xPQm = complete_basis(a24m, xQ0m, xDBLe(xQ0m, a24m, 2*SQISIGN_challenge_length-1), parent(a24_0.X)(1), 2*SQISIGN_challenge_length)
+    xQm, xPm, xPQm = complete_basis(a24m, xQ0m, xDBLe(xQ0m, a24m, ExponentSum-1), parent(a24_0.X)(1), ExponentSum)
     if s0 % 2 == 0
-        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPQ0m, xQ0m, xP0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[2*SQISIGN_challenge_length])
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPQ0m, xQ0m, xP0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
         n1 = -n1 + n3
         n2 = -n2 + n4
     else
-        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m, xQ0m, xPQ0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[2*SQISIGN_challenge_length])
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m, xQ0m, xPQ0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
     end
-    @assert n3 == 0 && (n4 == 1 || (n4 + 1) % BigInt(1)<<2*SQISIGN_challenge_length == 0)
-    @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
-    @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, 2*SQISIGN_challenge_length)
+    two_to_ab = BigInt(1) << ExponentSum
+    @assert n3 == 0 && (n4 == 1 || (n4 + 1) % two_to_ab == 0)
+    @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, ExponentSum)
+    @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, ExponentSum)
+    M0 = [n4 -n2; n3 n1]
 
     # the second 2^c-isogeny
-    xPm_c = xDBLe(xPm, a24m, SQISIGN_challenge_length)
-    xQm_c = xDBLe(xQm, a24m, SQISIGN_challenge_length)
-    xPQm_c = xDBLe(xPQm, a24m, SQISIGN_challenge_length)
+    xPm_c = xDBLe(xPm, a24m, ExponentSum - SQISIGN_challenge_length)
+    xQm_c = xDBLe(xQm, a24m, ExponentSum - SQISIGN_challenge_length)
+    xPQm_c = xDBLe(xPQm, a24m, ExponentSum - SQISIGN_challenge_length)
     K1 = ladder3pt(s1, xPm_c, xQm_c, xPQm_c, a24m)
     a24pub, _ = two_e_iso(a24m, K1, SQISIGN_challenge_length, Proj1{FqFieldElem}[], StrategiesDim1[SQISIGN_challenge_length])
 
@@ -96,7 +98,7 @@ function key_gen(global_data::GlobalData)
 
     # ideal to isogeny
     a24 = a24_0
-    xP, xQ, xPQ = xP0, xQ0, xPQ0
+    xP, xQ, xPQ = global_data.E0_data.xP2e, global_data.E0_data.xQ2e, global_data.E0_data.xPQ2e
     M = BigInt[1 0; 0 1]
     D = 1
     e = 2 * SQISIGN_challenge_length
