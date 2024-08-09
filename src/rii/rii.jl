@@ -41,6 +41,7 @@ function GeneralizedRandomIsogImages(d::BigInt, a24::Proj1{T}, xP::Proj1{T}, xQ:
     return a24, xP, xQ, xPQ
 end
 
+# return Ed, (R, S) s.t. there exists a (d(D1 - d))-isogeny E0 -> Ed sending (P0, Q0) to (R, S)
 function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     D1 = BigInt(1) << ExponentForDim2
     D2 = BigInt(1) << ExponentForDim1
@@ -119,6 +120,7 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     x_tau_P0, x_tau_Q0, x_tau_PQ0 = images[1][idx], images[2][idx], images[3][idx]
     x_rho_P0, x_rho_Q0, x_rho_PQ0 = images[4][idx], images[5][idx], images[6][idx]
 
+    # compute the images (R, S) := (hat(rho)*tau)(P0, Q0)
     n1, n2, n3, n4 = ec_bi_dlog(affine(Es[idx]), x_tau_P0, x_tau_Q0, x_tau_PQ0, x_rho_P0, x_rho_Q0, x_rho_PQ0, E0_data.dlog_data[ExponentForDim1 + ExponentForDim2])
     xR = linear_comb_2_e(n1, n2, xPd, xQd, xPQd, a24d, ExponentForDim1 + ExponentForDim2)
     xS = linear_comb_2_e(n3, n4, xPd, xQd, xPQd, a24d, ExponentForDim1 + ExponentForDim2)
