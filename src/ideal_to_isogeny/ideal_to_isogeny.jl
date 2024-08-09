@@ -132,7 +132,7 @@ function short_ideal_to_isogeny(I::LeftIdeal, a24::Proj1{T}, xP::Proj1{T}, xQ::P
     O1PQd = CouplePoint(O1, xPQd)
     eval_points = [O1Pd, O1Qd, O1PQd]
     order_id == 0 && push!(eval_points, CouplePoint(O1, xP2_I))
-    Es, images = product_isogeny(a24_0, a24d, P1P2, Q1Q2, PQ1PQ2, eval_points, ExponentForId2IsoDim2, StrategyId2IsoDim2)
+    Es, images = product_isogeny(a24_0, a24d, P1P2, Q1Q2, PQ1PQ2, eval_points, ExponentForId2IsoDim2, StrategiesDim2[ExponentForId2IsoDim2])
 
     # isomorphism to E0 or E0d
     if order_id == 0
@@ -325,7 +325,7 @@ function short_ideal_to_isogeny_for_precomputation(I::LeftIdeal, a24::Proj1{T}, 
     O1Qd = CouplePoint(O1, xQd)
     O1PQd = CouplePoint(O1, xPQd)
     O1P2_I = CouplePoint(O1, xP2_I)
-    Es, images = product_isogeny(a24_0, a24d, P1P2, Q1Q2, PQ1PQ2, [O1Pd, O1Qd, O1PQd, O1P2_I], ExponentForId2IsoDim2, StrategyId2IsoDim2)
+    Es, images = product_isogeny(a24_0, a24d, P1P2, Q1Q2, PQ1PQ2, [O1Pd, O1Qd, O1PQd, O1P2_I], ExponentForId2IsoDim2, StrategiesDim2[ExponentForId2IsoDim2])
 
     # isomorphism to A0
     if Es[1] == Proj1(E0.A0) || Es[1] == Proj1(E0.A0d) || Es[1] == Proj1(E0.A0dd)

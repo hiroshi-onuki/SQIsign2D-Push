@@ -64,7 +64,7 @@ function key_gen(global_data::GlobalData)
 
     # the first 2^c-isogeny
     K0 = ladder3pt(s0, xP0c, xQ0c, xPQ0c, a24_0)
-    a24m, images = two_e_iso(a24_0, K0, SQISIGN_challenge_length, [xP0c2, xQ0c2, xPQ0c2], StrategyChallenge)
+    a24m, images = two_e_iso(a24_0, K0, SQISIGN_challenge_length, [xP0c2, xQ0c2, xPQ0c2], StrategiesDim1[SQISIGN_challenge_length])
     xP0m, xQ0m, xPQ0m = images[1:3]
 
     # solving the DLog problem
@@ -85,7 +85,7 @@ function key_gen(global_data::GlobalData)
     xQm_c = xDBLe(xQm, a24m, SQISIGN_challenge_length)
     xPQm_c = xDBLe(xPQm, a24m, SQISIGN_challenge_length)
     K1 = ladder3pt(s1, xPm_c, xQm_c, xPQm_c, a24m)
-    a24pub, _ = two_e_iso(a24m, K1, SQISIGN_challenge_length, Proj1{FqFieldElem}[], StrategyChallenge)
+    a24pub, _ = two_e_iso(a24m, K1, SQISIGN_challenge_length, Proj1{FqFieldElem}[], StrategiesDim1[SQISIGN_challenge_length])
 
     # compute the ideal corresponding to the composition of the two isogenies
     @assert n1 % 2 == 1 || n2 % 2 == 1 || n3 % 2 == 1 || n4 % 2 == 1

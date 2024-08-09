@@ -18,9 +18,15 @@ include("../rii/rii.jl")
 include("../utilities/for_compression.jl")
 include("../sqisign2d_push/sqisign2d_push.jl")
 
-StrategyChallenge = compute_strategy(div(SQISIGN_challenge_length, 2) - 1, 1, 1)
-
-const StrategyId2IsoDim2 = compute_strategy(ExponentForId2IsoDim2 - 2, 2, 1)
+const StrategiesDim2 = Dict(
+    ExponentFull => compute_strategy(ExponentFull-2, 2, 1),
+    ExponentFull-1 => compute_strategy(ExponentFull-3, 2, 1),
+    ExponentFull-2 => compute_strategy(ExponentFull-4, 2, 1),
+    ExponentFull-3 => compute_strategy(ExponentFull-5, 2, 1),
+    ExponentFull-4 => compute_strategy(ExponentFull-6, 2, 1),
+    ExponentFull-5 => compute_strategy(ExponentFull-7, 2, 1),
+    ExponentForId2IsoDim2 => compute_strategy(ExponentForId2IsoDim2-2, 2, 1)
+)
 const StrategiesDim1 = Dict(
     ExponentForDim1 => compute_strategy(div(ExponentForDim1,2) - 1, 1, 1),
     ExponentForId2IsoDim1 => compute_strategy(div(ExponentForId2IsoDim1, 2) - 1, 1, 1),
