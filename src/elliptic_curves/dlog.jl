@@ -5,10 +5,10 @@ function ec_bi_dlog_E0(P::Point{FqFieldElem}, Q::Point{FqFieldElem}, E0::E0Data)
     t3 = Tate_pairing_iP0(Q, E0.tate_table, Cofactor)
     t4 = Tate_pairing_P0(Q, E0.tate_table, Cofactor)
 
-    n1 = -fq_dlog_power_of_2_opt(t1, E0.dlog_data_full)
-    n2 = fq_dlog_power_of_2_opt(t2, E0.dlog_data_full)
-    n3 = -fq_dlog_power_of_2_opt(t3, E0.dlog_data_full)
-    n4 = fq_dlog_power_of_2_opt(t4, E0.dlog_data_full)
+    n1 = -fq_dlog_power_of_2_opt(t1, E0.dlog_data[ExponentFull])
+    n2 = fq_dlog_power_of_2_opt(t2, E0.dlog_data[ExponentFull])
+    n3 = -fq_dlog_power_of_2_opt(t3, E0.dlog_data[ExponentFull])
+    n4 = fq_dlog_power_of_2_opt(t4, E0.dlog_data[ExponentFull])
 
     return n1, n2, n3, n4
 end
@@ -35,10 +35,10 @@ function ec_bi_dlog_E0d(P::Point{FqFieldElem}, Q::Point{FqFieldElem}, global_dat
     t3 = Tate_pairing_P0(Q, E0d.tate_tableQ, Cofactor)
     t4 = Tate_pairing_P0(Q, E0d.tate_tableP, Cofactor)
 
-    n1 = -fq_dlog_power_of_2_opt(t1, E0.dlog_data_full) * E0d.dlog_base
-    n2 = fq_dlog_power_of_2_opt(t2, E0.dlog_data_full) * E0d.dlog_base
-    n3 = -fq_dlog_power_of_2_opt(t3, E0.dlog_data_full) * E0d.dlog_base
-    n4 = fq_dlog_power_of_2_opt(t4, E0.dlog_data_full) * E0d.dlog_base
+    n1 = -fq_dlog_power_of_2_opt(t1, E0.dlog_data[ExponentFull]) * E0d.dlog_base
+    n2 = fq_dlog_power_of_2_opt(t2, E0.dlog_data[ExponentFull]) * E0d.dlog_base
+    n3 = -fq_dlog_power_of_2_opt(t3, E0.dlog_data[ExponentFull]) * E0d.dlog_base
+    n4 = fq_dlog_power_of_2_opt(t4, E0.dlog_data[ExponentFull]) * E0d.dlog_base
 
     return n1, n2, n3, n4
 end

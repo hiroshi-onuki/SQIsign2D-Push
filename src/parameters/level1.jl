@@ -25,7 +25,8 @@ const StrategiesDim2 = Dict(
     ExponentFull-3 => compute_strategy(ExponentFull-5, 2, 1),
     ExponentFull-4 => compute_strategy(ExponentFull-6, 2, 1),
     ExponentFull-5 => compute_strategy(ExponentFull-7, 2, 1),
-    ExponentForId2IsoDim2 => compute_strategy(ExponentForId2IsoDim2-2, 2, 1)
+    ExponentForId2IsoDim2 => compute_strategy(ExponentForId2IsoDim2-2, 2, 1),
+    ExponentForDim2 => compute_strategy(ExponentForDim2-2, 2, 1)
 )
 const StrategiesDim1 = Dict(
     ExponentForDim1 => compute_strategy(div(ExponentForDim1,2) - 1, 1, 1),
@@ -83,20 +84,13 @@ function make_E0_data()
     strategy_dlog = compute_strategy(div(ExponentFull, window_size) - 1, window_size, 1)
     dlog_data_full = DlogData(ExponentFull, window_size, fq_dlog_table1, fq_dlog_table2, strategy_dlog)
 
-    base = tp_P2e_Q2e^(BigInt(2)^(ExponentFull - SQISIGN_challenge_length))
-    fq_dlog_table1_c, fq_dlog_table2_c = make_dlog_table(base, SQISIGN_challenge_length, window_size)
-    strategy_dlog_c = compute_strategy(div(SQISIGN_challenge_length, window_size) - 1, window_size, 1)
-    dlog_data_chall = DlogData(SQISIGN_challenge_length, window_size, fq_dlog_table1_c, fq_dlog_table2_c, strategy_dlog_c)
-
-    base = tp_P2e_Q2e^(BigInt(2)^(ExponentFull - 2*SQISIGN_challenge_length))
-    fq_dlog_table1_c2, fq_dlog_table2_c2 = make_dlog_table(base, 2*SQISIGN_challenge_length, window_size)
-    strategy_dlog_c2 = compute_strategy(div(2*SQISIGN_challenge_length, window_size) - 1, window_size, 1)
-    dlog_data_chall2 = DlogData(2*SQISIGN_challenge_length, window_size, fq_dlog_table1_c2, fq_dlog_table2_c2, strategy_dlog_c2)
-
-    base = tp_P2e_Q2e^(BigInt(2)^(ExponentFull - ExponentForDim2))
-    fq_dlog_table1_res, fq_dlog_table2_res = make_dlog_table(base, ExponentForDim2, window_size)
-    strategy_dlog_res = compute_strategy(div(ExponentForDim2, window_size) - 1, window_size, 1)
-    dlog_data_res = DlogData(ExponentForDim2, window_size, fq_dlog_table1_res, fq_dlog_table2_res, strategy_dlog_res)
+    dlog_data = Dict{Int, DlogData}(ExponentFull => dlog_data_full)
+    for d in [SQISIGN_challenge_length, 2*SQISIGN_challenge_length, ExponentForDim1 + ExponentForDim2, ExponentForDim2]
+        base = tp_P2e_Q2e^(BigInt(2)^(ExponentFull - d))
+        fq_dlog_table1, fq_dlog_table2 = make_dlog_table(base, d, window_size)
+        strategy_dlog = compute_strategy(div(d, window_size) - 1, window_size, 1)
+        dlog_data[d] = DlogData(d, window_size, fq_dlog_table1, fq_dlog_table2, strategy_dlog)
+    end
 
     DegreesOddTorsionBases = [3, 7, 23]
     ExponentsOddTorsionBases = [1, 1, 1]
@@ -128,7 +122,7 @@ function make_E0_data()
         end
     end
 
-    return Fp2, E0Data(A0, A0d, A0dd, a24_0, jInvariant_A(A0), P2e, Q2e, xP2e, xQ2e, xPQ2e, xP2e_id2iso_d2, xQ2e_id2iso_d2, xPQ2e_is2iso_d2, DegreesOddTorsionBases, ExponentsOddTorsionBases, OddTorsionBases, Matrices_2e, M44inv_chall, M44inv_chall2, Matrices_odd, w, isomorphism_to_A0, dlog_data_full, dlog_data_chall, dlog_data_chall2, dlog_data_res, tp_table)
+    return Fp2, E0Data(A0, A0d, A0dd, a24_0, jInvariant_A(A0), P2e, Q2e, xP2e, xQ2e, xPQ2e, xP2e_id2iso_d2, xQ2e_id2iso_d2, xPQ2e_is2iso_d2, DegreesOddTorsionBases, ExponentsOddTorsionBases, OddTorsionBases, Matrices_2e, M44inv_chall, M44inv_chall2, Matrices_odd, w, isomorphism_to_A0, dlog_data, tp_table)
 end
 
 # Fp2 and values in Fp2

@@ -68,9 +68,9 @@ function compute_order_d(E0::E0Data, d::Int)
     Mdual = (Minv * N) .% order2e
     Msqrtd = (M * Ma * Minv * invmod(N, order2e)) .% order2e
 
-    xPs = xDBLe(xP, a24, ExponentFull - ExponentForTorsion)
-    xQs = xDBLe(xQ, a24, ExponentFull - ExponentForTorsion)
-    xPQs = xDBLe(xPQ, a24, ExponentFull - ExponentForTorsion)
+    xPs = xDBLe(xP, a24, ExponentFull - ExponentForId2IsoDim2)
+    xQs = xDBLe(xQ, a24, ExponentFull - ExponentForId2IsoDim2)
+    xPQs = xDBLe(xPQ, a24, ExponentFull - ExponentForId2IsoDim2)
 
     A = Montgomery_coeff(a24)
     P = Point(A, xP)
@@ -82,7 +82,7 @@ function compute_order_d(E0::E0Data, d::Int)
     tp_table_P = make_pairing_table(A, P, ExponentFull)
     tp_table_Q = make_pairing_table(A, Q, ExponentFull)
     tp_PQ = Tate_pairing_P0(Q, tp_table_P, Cofactor)
-    base_dlog = fq_dlog_power_of_2_opt(tp_PQ, E0.dlog_data_full)
+    base_dlog = fq_dlog_power_of_2_opt(tp_PQ, E0.dlog_data[ExponentFull])
     base_dlog = invmod(base_dlog, order2e)
 
     return OrderData(d, A, jInvariant_a24(a24), a24, xP, xQ, xPQ, xPs, xQs, xPQs, I, Mdual, N, Msqrtd, tp_table_P, tp_table_Q, base_dlog)
@@ -108,7 +108,7 @@ function compute_order(Fp2::FqField, E0::E0Data, order_data::Function)
     tp_table_P = make_pairing_table(A, P, ExponentFull)
     tp_table_Q = make_pairing_table(A, Q, ExponentFull)
     tp_PQ = Tate_pairing_P0(Q, tp_table_P, Cofactor)
-    base_dlog = fq_dlog_power_of_2_opt(tp_PQ, E0.dlog_data_full)
+    base_dlog = fq_dlog_power_of_2_opt(tp_PQ, E0.dlog_data[ExponentFull])
     base_dlog = invmod(base_dlog, BigInt(2)^ExponentFull)
 
     return OrderData(d, A, jInvariant_a24(a24), a24, xP, xQ, xPQ, xPs, xQs, xPQs, I, M, N, M_sqrt_d, tp_table_P, tp_table_Q, base_dlog)
