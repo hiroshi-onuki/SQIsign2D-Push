@@ -131,3 +131,16 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
 
     return a24d, xR, xS, xRS
 end
+
+function PushRandIsog(d::BigInt, s0::BigInt, sm::BigInt, global_data::GlobalData)
+    a24F0d, xR, xS, xRS = ComposedRandIsog(d, global_data)
+
+    xR_D1 = xDBLe(xR, a24F0d, ExponentForDim2)
+    xS_D1 = xDBLe(xS, a24F0d, ExponentForDim2)
+    xRS_D1 = xDBLe(xRS, a24F0d, ExponentForDim2)
+    K = ladder3pt(s0, xR_D1, xS_D1, xRS_D1, a24F0d)
+    a24Fmd, images = two_e_iso(a24F0d, K, ExponentForDim1, [xR, xS, xRS], StrategiesDim1[ExponentForDim1])
+    xRd, xSd, xRSd = images
+
+    
+end
