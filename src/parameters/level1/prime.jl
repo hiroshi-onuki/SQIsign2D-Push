@@ -1,7 +1,7 @@
 const p = BigInt(2)^263 * 46 - 1
 const Log2p = Int(ceil(log(2, p)))
-const ExponentForTorsion = 135
-const ExponentForIsogenyDim1 = 128
+const ExponentForDim2 = 135     # a
+const ExponentForDim1 = 128     # b
 
 # for ideal-to-isogeny
 const ExponentFull = 264

@@ -11,7 +11,7 @@ const SQISIGN_challenge_length = 128
 const IdealToIsogeny_2_e_good_attempts = 1000
 
 const SQISIGN2D_Fp2_length = 66
-const SQISIGN2D_2a_length = Int(ceil(ExponentForTorsion/8))
+const SQISIGN2D_2a_length = Int(ceil(ExponentForDim2/8))
 const SQISIGN2D_signature_length = 2 * SQISIGN2D_Fp2_length + 4 * SQISIGN2D_2a_length + 1
 const CompactSQISIGN2D_signature_length = SQISIGN2D_Fp2_length + 6 * SQISIGN2D_2a_length + 3
 

@@ -22,7 +22,7 @@ StrategyChallenge = compute_strategy(div(SQISIGN_challenge_length, 2) - 1, 1, 1)
 
 const StrategyId2IsoDim2 = compute_strategy(ExponentForId2IsoDim2 - 2, 2, 1)
 const StrategiesDim1 = Dict(
-    ExponentForIsogenyDim1 => compute_strategy(div(ExponentForIsogenyDim1,2) - 1, 1, 1),
+    ExponentForDim1 => compute_strategy(div(ExponentForDim1,2) - 1, 1, 1),
     ExponentForId2IsoDim1 => compute_strategy(div(ExponentForId2IsoDim1, 2) - 1, 1, 1),
     SQISIGN_challenge_length => compute_strategy(div(SQISIGN_challenge_length, 2) - 1, 1, 1),
 )
@@ -87,10 +87,10 @@ function make_E0_data()
     strategy_dlog_c2 = compute_strategy(div(2*SQISIGN_challenge_length, window_size) - 1, window_size, 1)
     dlog_data_chall2 = DlogData(2*SQISIGN_challenge_length, window_size, fq_dlog_table1_c2, fq_dlog_table2_c2, strategy_dlog_c2)
 
-    base = tp_P2e_Q2e^(BigInt(2)^(ExponentFull - ExponentForTorsion))
-    fq_dlog_table1_res, fq_dlog_table2_res = make_dlog_table(base, ExponentForTorsion, window_size)
-    strategy_dlog_res = compute_strategy(div(ExponentForTorsion, window_size) - 1, window_size, 1)
-    dlog_data_res = DlogData(ExponentForTorsion, window_size, fq_dlog_table1_res, fq_dlog_table2_res, strategy_dlog_res)
+    base = tp_P2e_Q2e^(BigInt(2)^(ExponentFull - ExponentForDim2))
+    fq_dlog_table1_res, fq_dlog_table2_res = make_dlog_table(base, ExponentForDim2, window_size)
+    strategy_dlog_res = compute_strategy(div(ExponentForDim2, window_size) - 1, window_size, 1)
+    dlog_data_res = DlogData(ExponentForDim2, window_size, fq_dlog_table1_res, fq_dlog_table2_res, strategy_dlog_res)
 
     DegreesOddTorsionBases = [3, 7, 23]
     ExponentsOddTorsionBases = [1, 1, 1]
