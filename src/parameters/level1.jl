@@ -141,5 +141,5 @@ function make_precomputed_values()
     @assert orders_data[2].j_inv^2 - 6896880000*orders_data[2].j_inv - 567663552000000 == 0
     @assert orders_data[3].j_inv^2 + 191025*orders_data[3].j_inv - 121287375 == 0
 
-    return GlobalData(E0, orders_data)
+    return GlobalData(Fp2, E0, orders_data)
 end

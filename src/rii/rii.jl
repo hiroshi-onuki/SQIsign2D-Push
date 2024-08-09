@@ -40,3 +40,35 @@ function GeneralizedRandomIsogImages(d::BigInt, a24::Proj1{T}, xP::Proj1{T}, xQ:
 
     return a24, xP, xQ, xPQ
 end
+
+function ComposedRandIsog(d::BigInt, global_data::GlobalData)
+    D1 = BigInt(1) << ExponentForDim2
+    D2 = BigInt(1) << ExponentForDim1
+    E0_data = global_data.E0_data
+    a24_0 = E0_data.a24_0
+    xP0, xQ0, xPQ0 = E0_data.xP2e, E0_data.xQ2e, E0_data.xPQ2e
+    xP0 = xDBLe(xP0, a24_0, ExponentFull - ExponentForDim1 - ExponentForDim2)
+    xQ0 = xDBLe(xQ0, a24_0, ExponentFull - ExponentForDim1 - ExponentForDim2)
+    xPQ0 = xDBLe(xPQ0, a24_0, ExponentFull - ExponentForDim1 - ExponentForDim2)
+
+    alpha = Quaternion_0
+    while gcd(alpha) % 2 == 0
+        alpha, _ = FullRepresentInteger(d*(D1 - d)*D2)
+    end
+
+    xP0D2 = xDBLe(xP0, a24_0, ExponentForDim2)
+    xQ0D2 = xDBLe(xQ0, a24_0, ExponentForDim2)
+    xPQ0D2 = xDBLe(xPQ0, a24_0, ExponentForDim2)
+    K = kernel_generator(xP0D2, xQ0D2, xPQ0D2, a24_0, involution(alpha), 2, ExponentForDim1, E0_data.Matrices_2e)
+    a24d, images = two_e_iso(a24_0, K, ExponentForDim1, [xP0, xQ0, xPQ0], StrategiesDim1[ExponentForDim1])
+
+    xP1 = ladder(d << ExponentForDim1, xP0, a24_0)
+    xQ1 = ladder(d << ExponentForDim1, xQ0, a24_0)
+    xPQ1 = ladder(d << ExponentForDim1, xPQ0, a24_0)
+    xPd, xQd, xPQd = images
+    xP2, xQ2, xPQ2 = action_on_torsion_basis(alpha, a24d, xPd, xQd, xPQd, E0_data)
+
+    a24, xP, xQ, xPQ, _ = d2isogeny(a24_0, a24d, xP1, xQ1, xPQ1, xP2, xQ2, xPQ2, ExponentForDim2, d, Proj1{FqFieldElem}[], global_data)
+
+    return a24
+end
