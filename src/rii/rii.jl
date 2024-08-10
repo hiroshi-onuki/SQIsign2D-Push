@@ -48,9 +48,9 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
     xP0, xQ0, xPQ0 = E0_data.xP2e, E0_data.xQ2e, E0_data.xPQ2e
-    xP0 = xDBLe(xP0, a24_0, ExponentFull - ExponentForDim1 - ExponentForDim2)
-    xQ0 = xDBLe(xQ0, a24_0, ExponentFull - ExponentForDim1 - ExponentForDim2)
-    xPQ0 = xDBLe(xPQ0, a24_0, ExponentFull - ExponentForDim1 - ExponentForDim2)
+    xP0 = xDBLe(xP0, a24_0, ExponentFull - ExponentSum)
+    xQ0 = xDBLe(xQ0, a24_0, ExponentFull - ExponentSum)
+    xPQ0 = xDBLe(xPQ0, a24_0, ExponentFull - ExponentSum)
 
     # alpha in End(E0) s.t. n(alpha) = d*(D1 - d)*D2
     # we decompose alpha = hat(phi)*hat(rho)*tau, where deg(phi) = D2, deg(rho) = D1 - d, deg(tau) = d
@@ -87,13 +87,13 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     P0O = CouplePoint(xP0, O)
     Q0O = CouplePoint(xQ0, O)
     P0Q0 = CouplePoint(xPQ0, O)
-    xP0T1 = ladder(1 + d << (ExponentForDim1 + ExponentForDim2 - 2), xP0, a24_0)
-    xQ0T1 = ladder3pt(d << (ExponentForDim1 + ExponentForDim2 - 2), xQ0, xP0, xPQ0, a24_0)
-    xPQ0T1 = ladder3pt(D1*D2 - 1 - (d << (ExponentForDim1 + ExponentForDim2 - 2) % D1*D2), xQ0, xP0, xPQ0, a24_0)
+    xP0T1 = ladder(1 + d << (ExponentSum - 2), xP0, a24_0)
+    xQ0T1 = ladder3pt(d << (ExponentSum - 2), xQ0, xP0, xPQ0, a24_0)
+    xPQ0T1 = ladder3pt(D1*D2 - 1 - (d << (ExponentSum - 2) % D1*D2), xQ0, xP0, xPQ0, a24_0)
     P0T1T2 = CouplePoint(xP0T1, xT2)
     Q0T1T2 = CouplePoint(xQ0T1, xT2)
     P0Q0T1 = CouplePoint(xP0T1, xT2)
-    xPd, xQd, xPQd = torsion_basis(a24d, ExponentForDim1 + ExponentForDim2)
+    xPd, xQd, xPQd = torsion_basis(a24d, ExponentSum)
     OPd = CouplePoint(O, xPd)
     OQd = CouplePoint(O, xQd)
     OPQd = CouplePoint(O, xPQd)
@@ -111,8 +111,8 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
 
     idx = 1
     x_tau_P0, x_tau_Q0, x_tau_PQ0 = images[1][idx], images[2][idx], images[3][idx]
-    w0 = global_data.E0_data.Weil_P2eQ2e^(BigInt(1) << (ExponentFull - ExponentForDim1 - ExponentForDim2))
-    w1 = Weil_pairing_2power(affine(Es[idx]), x_tau_P0, x_tau_Q0, x_tau_PQ0, ExponentForDim1 + ExponentForDim2)
+    w0 = global_data.E0_data.Weil_P2eQ2e^(BigInt(1) << (ExponentFull - ExponentSum))
+    w1 = Weil_pairing_2power(affine(Es[idx]), x_tau_P0, x_tau_Q0, x_tau_PQ0, ExponentSum)
     if w1 != w0^d
         idx = 2
     end
@@ -122,9 +122,7 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
 
     # compute the images (R, S) := (hat(rho)*tau)(P0, Q0)
     n1, n2, n3, n4 = ec_bi_dlog(affine(Es[idx]), x_tau_P0, x_tau_Q0, x_tau_PQ0, x_rho_P0, x_rho_Q0, x_rho_PQ0, E0_data.dlog_data[ExponentForDim1 + ExponentForDim2])
-    xR = linear_comb_2_e(n1, n2, xPd, xQd, xPQd, a24d, ExponentForDim1 + ExponentForDim2)
-    xS = linear_comb_2_e(n3, n4, xPd, xQd, xPQd, a24d, ExponentForDim1 + ExponentForDim2)
-    xRS = linear_comb_2_e(n1 - n3, n2 - n4, xPd, xQd, xPQd, a24d, ExponentForDim1 + ExponentForDim2)
+    xR, xS, xRS = action_of_matrix([n1 n2; n3 n4], a24d, xPd, xQd, xPQd, ExponentSum)
     xR = ladder(D1 - d, xR, a24d)
     xS = ladder(D1 - d, xS, a24d)
     xRS = ladder(D1 - d, xRS, a24d)
@@ -132,9 +130,14 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     return a24d, xR, xS, xRS
 end
 
-function PushRandIsog(d::BigInt, s0::BigInt, sm::BigInt, global_data::GlobalData)
+function PushRandIsog(d::BigInt, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Proj1{T}, xPQm::Proj1{T}, 
+        xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, M0::Matrix{BigInt}, Mm::Matrix{BigInt},
+        global_data::GlobalData) where T <: RingElem
+
+    # d*(D1 - d)-isogeny: E0 -> F0d
     a24F0d, xR, xS, xRS = ComposedRandIsog(d, global_data)
 
+    # D2-isogeny: F0d -> Fmd
     xR_D1 = xDBLe(xR, a24F0d, ExponentForDim2)
     xS_D1 = xDBLe(xS, a24F0d, ExponentForDim2)
     xRS_D1 = xDBLe(xRS, a24F0d, ExponentForDim2)
@@ -142,5 +145,12 @@ function PushRandIsog(d::BigInt, s0::BigInt, sm::BigInt, global_data::GlobalData
     a24Fmd, images = two_e_iso(a24F0d, K, ExponentForDim1, [xR, xS, xRS], StrategiesDim1[ExponentForDim1])
     xRd, xSd, xRSd = images
 
-    
+    xRmd, xSmd, xRSmd = action_of_matrix(M0, a24Fmd, xRd, xSd, xRSd, ExponentSum)
+    @assert is_infinity(xDBLe(xRmd, a24Fmd, ExponentD1))
+    @assert is_infinity(xDBLe(xSmd, a24Fmd, ExponentD1))
+    @assert is_infinity(xDBLe(xRSmd, a24Fmd, ExponentD1))
+    @assert !is_infinity(xDBLe(xRmd, a24Fmd, ExponentD1-1))
+    @assert !is_infinity(xDBLe(xSmd, a24Fmd, ExponentD1-1))
+    @assert !is_infinity(xDBLe(xRSmd, a24Fmd, ExponentD1-1))
+
 end

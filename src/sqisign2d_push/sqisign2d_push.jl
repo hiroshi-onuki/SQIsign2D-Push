@@ -130,7 +130,7 @@ function key_gen(global_data::GlobalData)
     @assert xPQm_p == linear_comb_2_e(n1 - n3, n2 - n4, xP, xQ, xPQ, a24, ExponentSum)
     M1 = [n4 -n2; n3 n1]
 
-    return a24, (s0, s1, M0, M1, M, xPm, xQm, xPQm, xPm_p, xQm_p, xPQm_p, xP, xQ, xPQ, I)
+    return a24, (s0, s1, M0, M1, M, xPm, xQm, xPQm, xP, xQ, xPQ, I)
 end
 
 function commitment(global_data::GlobalData)
