@@ -50,6 +50,7 @@ function auxiliary_path(a24::Proj1{T}, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}
 end
 
 function key_gen(global_data::GlobalData)
+    two_to_ab = BigInt(1) << ExponentSum
     two_to_chall = BigInt(1) << SQISIGN_challenge_length
     a24_0 = global_data.E0_data.a24_0
     xP0, xQ0, xPQ0 = global_data.E0_data.xP2e, global_data.E0_data.xQ2e, global_data.E0_data.xPQ2e
@@ -64,11 +65,10 @@ function key_gen(global_data::GlobalData)
 
     # the first 2^c-isogeny
     K0 = ladder3pt(s0, xP0c, xQ0c, xPQ0c, a24_0)
-    a24m, images = two_e_iso(a24_0, K0, SQISIGN_challenge_length, [xP0, xQ0, xPQ0], StrategiesDim1[SQISIGN_challenge_length])
-    xP0m, xQ0m, xPQ0m = images[1:3]
+    a24m, (xP0m, xQ0m, xPQ0m) = two_e_iso(a24_0, K0, SQISIGN_challenge_length, [xP0, xQ0, xPQ0], StrategiesDim1[SQISIGN_challenge_length])
 
     # solving the DLog problem
-    xQm, xPm, xPQm = complete_basis(a24m, xQ0m, xDBLe(xQ0m, a24m, ExponentSum-1), parent(a24_0.X)(1), ExponentSum)
+    xQm, xPm, xPQm = complete_basis(a24m, xQ0m, xDBLe(xQ0m, a24m, ExponentSum-1), global_data.Fp2(1), ExponentSum)
     if s0 % 2 == 0
         n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPQ0m, xQ0m, xP0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
         n1 = -n1 + n3
@@ -76,7 +76,6 @@ function key_gen(global_data::GlobalData)
     else
         n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m, xQ0m, xPQ0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
     end
-    two_to_ab = BigInt(1) << ExponentSum
     @assert n3 == 0 && (n4 == 1 || (n4 + 1) % two_to_ab == 0)
     @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, ExponentSum)
     @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, ExponentSum)
@@ -87,7 +86,8 @@ function key_gen(global_data::GlobalData)
     xQm_c = xDBLe(xQm, a24m, ExponentSum - SQISIGN_challenge_length)
     xPQm_c = xDBLe(xPQm, a24m, ExponentSum - SQISIGN_challenge_length)
     K1 = ladder3pt(s1, xPm_c, xQm_c, xPQm_c, a24m)
-    a24pub, _ = two_e_iso(a24m, K1, SQISIGN_challenge_length, Proj1{FqFieldElem}[], StrategiesDim1[SQISIGN_challenge_length])
+    a24pub, (xPm_p, xQm_p, xPQm_p) = two_e_iso(a24m, K1, SQISIGN_challenge_length, [xPm, xQm, xPQm], StrategiesDim1[SQISIGN_challenge_length])
+    a24pub, (xPm_p, xQm_p, xPQm_p) = Montgomery_normalize(a24pub, [xPm_p, xQm_p, xPQm_p])
 
     # compute the ideal corresponding to the composition of the two isogenies
     @assert n1 % 2 == 1 || n2 % 2 == 1 || n3 % 2 == 1 || n4 % 2 == 1
@@ -111,9 +111,26 @@ function key_gen(global_data::GlobalData)
         I = ideal_transform(I, beta, n_I_d)
         e -= ed
     end
-    a24pub, _ = Montgomery_normalize(a24pub, Proj1{FqFieldElem}[])
     @assert a24 == a24pub
-    return a24, (I, D, xP, xQ, xPQ, xP0, xQ0, xPQ0)
+    xP = xDBLe(xP, a24, ExponentFull - ExponentSum)
+    xQ = xDBLe(xQ, a24, ExponentFull - ExponentSum)
+    xPQ = xDBLe(xPQ, a24, ExponentFull - ExponentSum)
+    M = M .% two_to_ab
+
+    # solving the DLog problem
+    if s1 % 2 == 0
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24), xPQm_p, xQm_p, xPm_p, xP, xQ, xPQ, global_data.E0_data.dlog_data[ExponentSum])
+        n1 = -n1 + n3
+        n2 = -n2 + n4
+    else
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24), xPm_p, xQm_p, xPQm_p, xP, xQ, xPQ, global_data.E0_data.dlog_data[ExponentSum])
+    end
+    @assert xPm_p == linear_comb_2_e(n1, n2, xP, xQ, xPQ, a24, ExponentSum)
+    @assert xQm_p == linear_comb_2_e(n3, n4, xP, xQ, xPQ, a24, ExponentSum)
+    @assert xPQm_p == linear_comb_2_e(n1 - n3, n2 - n4, xP, xQ, xPQ, a24, ExponentSum)
+    M1 = [n4 -n2; n3 n1]
+
+    return a24, (s0, s1, M0, M1, M, xPm, xQm, xPQm, xPm_p, xQm_p, xPQm_p, xP, xQ, xPQ, I)
 end
 
 function commitment(global_data::GlobalData)
