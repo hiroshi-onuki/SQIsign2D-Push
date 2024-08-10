@@ -147,7 +147,7 @@ function key_gen(global_data::GlobalData)
     else
         n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPmd, xQmd, xPQmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
     end
-    M1 = [n1 n3; n2 n4]
+    M1 = [n1 n3; n2 n4] .% two_to_ab
 
     return a24, (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I)
 end

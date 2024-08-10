@@ -136,14 +136,14 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, a24::Proj1{T}, s0::BigInt, sm::
     two_to_ab = BigInt(1) << ExponentSum
 
     # d*(D1 - d)-isogeny: E0 -> F0d
-    a24F0d, xR, xS, xRS = ComposedRandIsog(d, global_data)
+    a24F0d, xR0d, xS0d, xRS0d = ComposedRandIsog(d, global_data)
 
     # D2-isogeny: F0d -> Fmd
-    xR_D1 = xDBLe(xR, a24F0d, ExponentForDim2)
-    xS_D1 = xDBLe(xS, a24F0d, ExponentForDim2)
-    xRS_D1 = xDBLe(xRS, a24F0d, ExponentForDim2)
+    xR_D1 = xDBLe(xR0d, a24F0d, ExponentForDim2)
+    xS_D1 = xDBLe(xS0d, a24F0d, ExponentForDim2)
+    xRS_D1 = xDBLe(xRS0d, a24F0d, ExponentForDim2)
     K = ladder3pt(s0, xR_D1, xS_D1, xRS_D1, a24F0d)
-    a24Fmd, (xRd, xSd, xRSd) = two_e_iso(a24F0d, K, ExponentForDim1, [xR, xS, xRS], StrategiesDim1[ExponentForDim1])
+    a24Fmd, (xRd, xSd, xRSd) = two_e_iso(a24F0d, K, ExponentForDim1, [xR0d, xS0d, xRS0d], StrategiesDim1[ExponentForDim1])
 
     xRmd, xSmd, xRSmd = action_of_matrix(M0, a24Fmd, xRd, xSd, xRSd, ExponentSum)
     @assert is_infinity(xDBLe(xRmd, a24Fmd, ExponentForDim2))
@@ -181,6 +181,30 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, a24::Proj1{T}, s0::BigInt, sm::
     eval_points_T = [PmT1T2, QmT1T2, PQmT1T2]
     # isogeny
     Es, images = product_isogeny_sqrt(a24m, a24Fmd, P1P2, Q1Q2, PQ1PQ2, eval_points, eval_points_T, ExponentForDim2, StrategiesDim2[ExponentForDim2])
+    idx = 1
+    xRm, xSm, xRSm = images[1][idx], images[2][idx], images[3][idx]
+    w0 = Weil_pairing_2power(Montgomery_coeff(a24m), xPm, xQm, xPQm, ExponentSum)
+    w1 = Weil_pairing_2power(Montgomery_coeff(A_to_a24(Es[idx])), xRm, xSm, xRSm, ExponentSum)
+    if w1 != w0^d
+        idx = 2
+    end
+    a24Fm = A_to_a24(Es[idx])
+    xRm, xSm, xRSm = images[1][idx], images[2][idx], images[3][idx]
+    @assert Weil_pairing_2power(Montgomery_coeff(a24Fm), xRm, xSm, xRSm, ExponentSum) == w0^d
 
+    # D2-isogeny: Fm -> F
+    Rm_c = xDBLe(xRm, a24Fm, ExponentForDim2)
+    Sm_c = xDBLe(xSm, a24Fm, ExponentForDim2)
+    RSm_c = xDBLe(xRSm, a24Fm, ExponentForDim2)
+    K = ladder3pt(sm, Rm_c, Sm_c, RSm_c, a24Fm)
+    a24F, images = two_e_iso(a24Fm, K, ExponentForDim1, [xRm, xSm, xRSm], StrategiesDim1[ExponentForDim1])
+    xR, xS, xRS = action_of_matrix(Mm, a24F, images[1], images[2], images[3], ExponentSum)
+    @assert is_infinity(xDBLe(xR, a24F, ExponentForDim2))
+    @assert is_infinity(xDBLe(xS, a24F, ExponentForDim2))
+    @assert is_infinity(xDBLe(xRS, a24F, ExponentForDim2))
+    @assert !is_infinity(xDBLe(xR, a24F, ExponentForDim2-1))
+    @assert !is_infinity(xDBLe(xS, a24F, ExponentForDim2-1))
+    @assert !is_infinity(xDBLe(xRS, a24F, ExponentForDim2-1))
 
+    return Montgomery_normalize(a24F, [xR, xS, xRS])
 end
