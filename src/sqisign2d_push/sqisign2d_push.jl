@@ -79,7 +79,7 @@ function key_gen(global_data::GlobalData)
     @assert n3 == 0 && (n4 == 1 || (n4 + 1) % two_to_ab == 0)
     @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, ExponentSum)
     @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, ExponentSum)
-    M0 = [n4 -n2; n3 n1]
+    M0 = [n4 -n3; -n2 n1]
 
     # the second 2^c-isogeny
     xPm_c = xDBLe(xPm, a24m, ExponentSum - SQISIGN_challenge_length)
@@ -128,7 +128,7 @@ function key_gen(global_data::GlobalData)
     @assert xPm_p == linear_comb_2_e(n1, n2, xP, xQ, xPQ, a24, ExponentSum)
     @assert xQm_p == linear_comb_2_e(n3, n4, xP, xQ, xPQ, a24, ExponentSum)
     @assert xPQm_p == linear_comb_2_e(n1 - n3, n2 - n4, xP, xQ, xPQ, a24, ExponentSum)
-    M1 = [n4 -n2; n3 n1]
+    M1 = [n4 -n3; -n2 n1]
 
     return a24, (s0, s1, M0, M1, M, xPm, xQm, xPQm, xP, xQ, xPQ, I)
 end

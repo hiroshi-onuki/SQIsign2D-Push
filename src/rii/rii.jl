@@ -122,7 +122,7 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
 
     # compute the images (R, S) := (hat(rho)*tau)(P0, Q0)
     n1, n2, n3, n4 = ec_bi_dlog(affine(Es[idx]), x_tau_P0, x_tau_Q0, x_tau_PQ0, x_rho_P0, x_rho_Q0, x_rho_PQ0, E0_data.dlog_data[ExponentForDim1 + ExponentForDim2])
-    xR, xS, xRS = action_of_matrix([n1 n2; n3 n4], a24d, xPd, xQd, xPQd, ExponentSum)
+    xR, xS, xRS = action_of_matrix([n1 n3; n2 n4], a24d, xPd, xQd, xPQd, ExponentSum)
     xR = ladder(D1 - d, xR, a24d)
     xS = ladder(D1 - d, xS, a24d)
     xRS = ladder(D1 - d, xRS, a24d)
@@ -142,15 +142,14 @@ function PushRandIsog(d::BigInt, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Pro
     xS_D1 = xDBLe(xS, a24F0d, ExponentForDim2)
     xRS_D1 = xDBLe(xRS, a24F0d, ExponentForDim2)
     K = ladder3pt(s0, xR_D1, xS_D1, xRS_D1, a24F0d)
-    a24Fmd, images = two_e_iso(a24F0d, K, ExponentForDim1, [xR, xS, xRS], StrategiesDim1[ExponentForDim1])
-    xRd, xSd, xRSd = images
+    a24Fmd, (xRd, xSd, xRSd) = two_e_iso(a24F0d, K, ExponentForDim1, [xR, xS, xRS], StrategiesDim1[ExponentForDim1])
 
     xRmd, xSmd, xRSmd = action_of_matrix(M0, a24Fmd, xRd, xSd, xRSd, ExponentSum)
-    @assert is_infinity(xDBLe(xRmd, a24Fmd, ExponentD1))
-    @assert is_infinity(xDBLe(xSmd, a24Fmd, ExponentD1))
-    @assert is_infinity(xDBLe(xRSmd, a24Fmd, ExponentD1))
-    @assert !is_infinity(xDBLe(xRmd, a24Fmd, ExponentD1-1))
-    @assert !is_infinity(xDBLe(xSmd, a24Fmd, ExponentD1-1))
-    @assert !is_infinity(xDBLe(xRSmd, a24Fmd, ExponentD1-1))
+    @assert is_infinity(xDBLe(xRmd, a24Fmd, ExponentForDim2))
+    @assert is_infinity(xDBLe(xSmd, a24Fmd, ExponentForDim2))
+    @assert is_infinity(xDBLe(xRSmd, a24Fmd, ExponentForDim2))
+    @assert !is_infinity(xDBLe(xRmd, a24Fmd, ExponentForDim2-1))
+    @assert !is_infinity(xDBLe(xSmd, a24Fmd, ExponentForDim2-1))
+    @assert !is_infinity(xDBLe(xRSmd, a24Fmd, ExponentForDim2-1))
 
 end
