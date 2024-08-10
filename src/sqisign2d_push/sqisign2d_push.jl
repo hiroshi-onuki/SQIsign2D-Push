@@ -81,14 +81,6 @@ function key_gen(global_data::GlobalData)
     @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, ExponentSum)
     M0 = [n4 -n3; -n2 n1]
 
-    # the second 2^c-isogeny
-    xPm_c = xDBLe(xPm, a24m, ExponentSum - SQISIGN_challenge_length)
-    xQm_c = xDBLe(xQm, a24m, ExponentSum - SQISIGN_challenge_length)
-    xPQm_c = xDBLe(xPQm, a24m, ExponentSum - SQISIGN_challenge_length)
-    K1 = ladder3pt(s1, xPm_c, xQm_c, xPQm_c, a24m)
-    a24pub, (xPm_p, xQm_p, xPQm_p) = two_e_iso(a24m, K1, SQISIGN_challenge_length, [xPm, xQm, xPQm], StrategiesDim1[SQISIGN_challenge_length])
-    a24pub, (xPm_p, xQm_p, xPQm_p) = Montgomery_normalize(a24pub, [xPm_p, xQm_p, xPQm_p])
-
     # compute the ideal corresponding to the composition of the two isogenies
     @assert n1 % 2 == 1 || n2 % 2 == 1 || n3 % 2 == 1 || n4 % 2 == 1
     a, b, c, d = global_data.E0_data.Matrix_2ed2_inv * [-n2 + n1*s1, 0, -n4 + n3*s1, 0]
@@ -111,11 +103,34 @@ function key_gen(global_data::GlobalData)
         I = ideal_transform(I, beta, n_I_d)
         e -= ed
     end
-    @assert a24 == a24pub
     xP = xDBLe(xP, a24, ExponentFull - ExponentSum)
     xQ = xDBLe(xQ, a24, ExponentFull - ExponentSum)
     xPQ = xDBLe(xPQ, a24, ExponentFull - ExponentSum)
     M = M .% two_to_ab
+
+    # the dual isogeny of the first 2^c-isogeny
+    K = xDBLe(xQm, a24m, ExponentSum - SQISIGN_challenge_length)
+    a24_0d, (xP0d, xQ0d, xPQ0d) = two_e_iso(a24m, K, SQISIGN_challenge_length, [xPm, xQm, xPQm], StrategiesDim1[SQISIGN_challenge_length])
+    xP0d, xQ0d, xPQ0d = global_data.E0_data.isomorphism_to_A0(a24_to_A(a24_0d), [xP0d, xQ0d, xPQ0d])
+    if xQ0d != xDBLe(xQ0, a24_0, SQISIGN_challenge_length)
+        # adjust the action by i
+        xP0d = -xP0d
+        xQ0d = -xQ0d
+        xPQ0d = -xPQ0d
+    end
+    n1, n2, n3, n4 = ec_bi_dlog(global_data.E0_data.A0, xP0d, xPQ0d, xQ0d, xP0, xQ0, xPQ0, global_data.E0_data.dlog_data[ExponentSum])
+    n3 = -n3 + n1
+    n4 = -n4 + n2
+    M0 = [n1 n3; n2 n4] .% two_to_ab
+
+    # the second 2^c-isogeny
+    xPm_c = xDBLe(xPm, a24m, ExponentSum - SQISIGN_challenge_length)
+    xQm_c = xDBLe(xQm, a24m, ExponentSum - SQISIGN_challenge_length)
+    xPQm_c = xDBLe(xPQm, a24m, ExponentSum - SQISIGN_challenge_length)
+    K1 = ladder3pt(s1, xPm_c, xQm_c, xPQm_c, a24m)
+    a24pub, (xPm_p, xQm_p, xPQm_p) = two_e_iso(a24m, K1, SQISIGN_challenge_length, [xPm, xQm, xPQm], StrategiesDim1[SQISIGN_challenge_length])
+    a24pub, (xPm_p, xQm_p, xPQm_p) = Montgomery_normalize(a24pub, [xPm_p, xQm_p, xPQm_p])
+    @assert a24 == a24pub
 
     # solving the DLog problem
     if s1 % 2 == 0
@@ -130,7 +145,7 @@ function key_gen(global_data::GlobalData)
     @assert xPQm_p == linear_comb_2_e(n1 - n3, n2 - n4, xP, xQ, xPQ, a24, ExponentSum)
     M1 = [n4 -n3; -n2 n1]
 
-    return a24, (s0, s1, M0, M1, M, xPm, xQm, xPQm, xP, xQ, xPQ, I)
+    return a24, (a24m, s0, s1, M0, M1, M, xPm, xQm, xPQm, xP, xQ, xPQ, I)
 end
 
 function commitment(global_data::GlobalData)

@@ -121,7 +121,7 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     x_rho_P0, x_rho_Q0, x_rho_PQ0 = images[4][idx], images[5][idx], images[6][idx]
 
     # compute the images (R, S) := (hat(rho)*tau)(P0, Q0)
-    n1, n2, n3, n4 = ec_bi_dlog(affine(Es[idx]), x_tau_P0, x_tau_Q0, x_tau_PQ0, x_rho_P0, x_rho_Q0, x_rho_PQ0, E0_data.dlog_data[ExponentForDim1 + ExponentForDim2])
+    n1, n2, n3, n4 = ec_bi_dlog(affine(Es[idx]), x_tau_P0, x_tau_Q0, x_tau_PQ0, x_rho_P0, x_rho_Q0, x_rho_PQ0, E0_data.dlog_data[ExponentSum])
     xR, xS, xRS = action_of_matrix([n1 n3; n2 n4], a24d, xPd, xQd, xPQd, ExponentSum)
     xR = ladder(D1 - d, xR, a24d)
     xS = ladder(D1 - d, xS, a24d)
@@ -130,9 +130,10 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     return a24d, xR, xS, xRS
 end
 
-function PushRandIsog(d::BigInt, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Proj1{T}, xPQm::Proj1{T}, 
+function PushRandIsog(d::BigInt, a24m::Proj1{T}, a24::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Proj1{T}, xPQm::Proj1{T}, 
         xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, M0::Matrix{BigInt}, Mm::Matrix{BigInt},
         global_data::GlobalData) where T <: RingElem
+    two_to_ab = BigInt(1) << ExponentSum
 
     # d*(D1 - d)-isogeny: E0 -> F0d
     a24F0d, xR, xS, xRS = ComposedRandIsog(d, global_data)
@@ -151,5 +152,35 @@ function PushRandIsog(d::BigInt, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Pro
     @assert !is_infinity(xDBLe(xRmd, a24Fmd, ExponentForDim2-1))
     @assert !is_infinity(xDBLe(xSmd, a24Fmd, ExponentForDim2-1))
     @assert !is_infinity(xDBLe(xRSmd, a24Fmd, ExponentForDim2-1))
+
+    # (D1, D1)-isogeny: Em times Fmd -> Fm times _
+    # kernel
+    xP1 = ladder(d << ExponentForDim1, xPm, a24m)
+    xQ1 = ladder(d << ExponentForDim1, xQm, a24m)
+    xPQ1 = ladder(d << ExponentForDim1, xPQm, a24m)
+    P1P2 = CouplePoint(xP1, xRmd)
+    Q1Q2 = CouplePoint(xQ1, xSmd)
+    PQ1PQ2 = CouplePoint(xPQ1, xRSmd)
+    w1 = Weil_pairing_2power(Montgomery_coeff(a24m), xP1, xQ1, xPQ1, ExponentForDim2)
+    w2 = Weil_pairing_2power(Montgomery_coeff(a24Fmd), xRmd, xSmd, xRSmd, ExponentForDim2)
+    @assert w1 * w2 == 1
+    # points evaluated by the isogeny
+    O = infinity_point(global_data.Fp2)
+    T1 = xDBLe(xP1, a24m, ExponentForDim2 - 2)
+    T2 = xDBLe(xRmd, a24Fmd, ExponentForDim2 - 2)
+    PmO = CouplePoint(xPm, O)
+    QmO = CouplePoint(xQm, O)
+    PQmO = CouplePoint(xPQm, O)
+    xPmT1 = ladder(1 + d << (ExponentSum - 2), xPm, a24m)
+    xQmT1 = ladder3pt(d << (ExponentSum - 2), xQm, xPm, xPQm, a24m)
+    xPQmT1 = ladder3pt(two_to_ab - 1 - (d << (ExponentSum - 2) % two_to_ab), xQm, xPm, xPQm, a24m)
+    PmT1T2 = CouplePoint(xPmT1, T2)
+    QmT1T2 = CouplePoint(xQmT1, T2)
+    PQmT1T2 = CouplePoint(xPQmT1, T2)
+    eval_points = [PmO, QmO, PQmO]
+    eval_points_T = [PmT1T2, QmT1T2, PQmT1T2]
+    # isogeny
+    Es, images = product_isogeny_sqrt(a24m, a24Fmd, P1P2, Q1Q2, PQ1PQ2, eval_points, eval_points_T, ExponentForDim2, StrategiesDim2[ExponentForDim2])
+
 
 end
