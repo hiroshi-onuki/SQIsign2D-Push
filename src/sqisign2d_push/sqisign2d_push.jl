@@ -136,7 +136,17 @@ function key_gen(global_data::GlobalData)
     K1dual = xDBLe(xQm_p, a24pub, ExponentSum - ExponentForDim1)
     a24md, (xPmd, xQmd, xPQmd) = two_e_iso(a24pub, K1dual, ExponentForDim1, [xP, xQ, xPQ], StrategiesDim1[ExponentForDim1])
     _, (xPmd, xQmd, xPQmd) = Montgomery_normalize(a24md, [xPmd, xQmd, xPQmd])
-    n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPmd, xQmd, xPQmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
+    if is_infinity(xDBLe(xPmd, a24m, ExponentSum-1))
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPQmd, xQmd, xPmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
+        n1 = -n1 + n3
+        n2 = -n2 + n4
+    elseif is_infinity(xDBLe(xQmd, a24m, ExponentSum-1))
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPmd, xPQmd, xQmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
+        n3 = -n3 + n1
+        n4 = -n4 + n2
+    else
+        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPmd, xQmd, xPQmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
+    end
     M1 = [n1 n3; n2 n4]
 
     return a24, (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I)
