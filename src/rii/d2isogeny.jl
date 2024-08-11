@@ -1,9 +1,9 @@
 # compute a (2^e, 2^e)-isogeny with kernel <(-dP0, alpha(P0)), -dQ0, alpha(Q0)> from E^2,
-# where e = ExponentFull, d(2^e - d) = norm(alpha),
+# where e = ExponentSum, d(2^e - d) = norm(alpha),
 # (P0, Q0) is the images of the precomputed torion basis of E0[2^e] under an odd isogeny \phi,
 # and the action of quaternion is induced by \phi.
 function d2isogeny_form_Esquare(a24::Proj1{T}, d::BigInt, alpha::QOrderElem, xP0::Proj1{T}, xQ0::Proj1{T}, xPQ0::Proj1{T}, global_data::GlobalData, compute_odd_points::Bool=false) where T <: RingElem
-    deg_dim2 = BigInt(1) << ExponentFull
+    deg_dim2 = BigInt(1) << ExponentSum
     E0_data = global_data.E0_data
     if (alpha + deg_dim2) % 2 == 1
         # the first (2,2)-isogeny is E^2 -> E^2 represented by the matrix [1 -1; 1 1]
@@ -42,15 +42,15 @@ function d2isogeny_form_Esquare(a24::Proj1{T}, d::BigInt, alpha::QOrderElem, xP0
     e = max(e, 0)
 
     # compute R + T etc. for the gluing isogeny
-    M1 = quaternion_to_matrix((BigInt(1) << (ExponentFull - e - 2)) * beta1, E0_data.Matrices_2e)
-    xR1_T = action_of_matrix([1 0; 0 0] + M1, a24, xP0, xQ0, xPQ0, true)
-    xS1_T = action_of_matrix([0 0; 1 0] + M1, a24, xP0, xQ0, xPQ0, true)
-    xRS1_T = action_of_matrix([1 0; -1 0] + M1, a24, xP0, xQ0, xPQ0, true)
-    M2 = quaternion_to_matrix((BigInt(1) << (ExponentFull - e - 2)) * beta2, E0_data.Matrices_2e)
+    M1 = quaternion_to_matrix((BigInt(1) << (ExponentSum - e - 2)) * beta1, E0_data.Matrices_2e)
+    xR1_T = action_of_matrix([1 0; 0 0] + M1, a24, xP0, xQ0, xPQ0, ExponentSum, true)
+    xS1_T = action_of_matrix([0 0; 1 0] + M1, a24, xP0, xQ0, xPQ0, ExponentSum, true)
+    xRS1_T = action_of_matrix([1 0; -1 0] + M1, a24, xP0, xQ0, xPQ0, ExponentSum, true)
+    M2 = quaternion_to_matrix((BigInt(1) << (ExponentSum - e - 2)) * beta2, E0_data.Matrices_2e)
     Mg = quaternion_to_matrix(gamma, E0_data.Matrices_2e)
-    xR2_T = action_of_matrix(Mg*[1 0; 0 0] + M2, a24, xP0, xQ0, xPQ0, true)
-    xS2_T = action_of_matrix(Mg*[0 0; 1 0] + M2, a24, xP0, xQ0, xPQ0, true)
-    xRS2_T = action_of_matrix(Mg*[1 0; -1 0] + M2, a24, xP0, xQ0, xPQ0, true)
+    xR2_T = action_of_matrix(Mg*[1 0; 0 0] + M2, a24, xP0, xQ0, xPQ0, ExponentSum, true)
+    xS2_T = action_of_matrix(Mg*[0 0; 1 0] + M2, a24, xP0, xQ0, xPQ0, ExponentSum, true)
+    xRS2_T = action_of_matrix(Mg*[1 0; -1 0] + M2, a24, xP0, xQ0, xPQ0, ExponentSum, true)
 
     # compute R + T for odd torsion points
     odd_x_points_1 = Proj1{FqFieldElem}[]
@@ -98,19 +98,19 @@ function d2isogeny_form_Esquare(a24::Proj1{T}, d::BigInt, alpha::QOrderElem, xP0
 
     # if e > 1 then we compute (2, 2)-isogenies by Velu's formulas
     if e > 1
-        if is_infinity(xDBLe(xP1, a24, ExponentFull-2))
-            K = xDBLe(xQ1, a24, ExponentFull-e)
+        if is_infinity(xDBLe(xP1, a24, ExponentSum-2))
+            K = xDBLe(xQ1, a24, ExponentSum-e)
         else
-            K = xDBLe(xP1, a24, ExponentFull-e)
+            K = xDBLe(xP1, a24, ExponentSum-e)
         end
         eval_points = vcat([xP1, xQ1, xPQ1, xR1, xS1, xRS1, xR1_T, xS1_T, xRS1_T], odd_x_points_1)
         a24_1, images = two_e_iso(a24, K, e-1, eval_points)
         xP1, xQ1, xPQ1, xR1, xS1, xRS1, xR1_T, xS1_T, xRS1_T = images[1:9]
         odd_x_points_1 = images[10:end]
-        if is_infinity(xDBLe(xP2, a24, ExponentFull-2))
-            K = xDBLe(xQ2, a24, ExponentFull-e)
+        if is_infinity(xDBLe(xP2, a24, ExponentSum-2))
+            K = xDBLe(xQ2, a24, ExponentSum-e)
         else
-            K = xDBLe(xP2, a24, ExponentFull-e)
+            K = xDBLe(xP2, a24, ExponentSum-e)
         end
         eval_points = vcat([xP2, xQ2, xPQ2, xR2, xS2, xRS2, xR2_T, xS2_T, xRS2_T], odd_x_points_2)
         a24_2, images = two_e_iso(a24, K, e-1, eval_points)
@@ -135,14 +135,14 @@ function d2isogeny_form_Esquare(a24::Proj1{T}, d::BigInt, alpha::QOrderElem, xP0
         push!(odd_couple_points_T, CouplePoint(odd_x_points_1[n+1], odd_x_points_2[n+1]))
     end
 
-    if haskey(StrategiesDim2, ExponentFull - e)
-        strategy = StrategiesDim2[ExponentFull - e]
+    if haskey(StrategiesDim2, ExponentSum - e)
+        strategy = StrategiesDim2[ExponentSum - e]
     else
-        strategy = compute_strategy(ExponentFull - e - 2, 2, 1)
+        strategy = compute_strategy(ExponentSum - e - 2, 2, 1)
     end
     eval_points = vcat([R1R2, S1S2, RS1RS2], odd_couple_points)
     eval_points_T = vcat([R1R2_T, S1S2_T, RS1RS2_T], odd_couple_points_T)
-    Es, images = product_isogeny_sqrt(a24_1, a24_2, P1P2, Q1Q2, PQ1PQ2, eval_points, eval_points_T, ExponentFull - e, strategy)
+    Es, images = product_isogeny_sqrt(a24_1, a24_2, P1P2, Q1Q2, PQ1PQ2, eval_points, eval_points_T, ExponentSum - e, strategy)
 
     idx = 1
     xP, xQ, xPQ = images[1][idx], images[2][idx], images[3][idx]
@@ -150,9 +150,9 @@ function d2isogeny_form_Esquare(a24::Proj1{T}, d::BigInt, alpha::QOrderElem, xP0
     if a24 == E0_data.a24_0
         w0 = E0_data.Weil_P2eQ2e
     else
-        w0 = Weil_pairing_2power(Montgomery_coeff(a24), xP0, xQ0, xPQ0, ExponentFull)
+        w0 = Weil_pairing_2power(Montgomery_coeff(a24), xP0, xQ0, xPQ0, ExponentSum)
     end
-    w1 = Weil_pairing_2power(affine(A), xP, xQ, xPQ, ExponentFull)
+    w1 = Weil_pairing_2power(affine(A), xP, xQ, xPQ, ExponentSum)
     if w1 != w0^d
         idx = 2
     end

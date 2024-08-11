@@ -153,17 +153,16 @@ function key_gen(global_data::GlobalData)
 end
 
 function commitment(global_data::GlobalData)
-    D_sec = random_secret_prime()
-    a24, xP, xQ, xPQ, I_sec = RandIsogImages(D_sec, global_data, false)
+    a24, xP, xQ, xPQ, I_sec = RandIsogImages(SQISIGN2D_commmitment_degree, global_data, false)
     a24, (xP, xQ, xPQ) = Montgomery_normalize(a24, [xP, xQ, xPQ])
     A = Montgomery_coeff(a24)
     xPc, xQc, xPQc = torsion_basis(A, SQISIGN_challenge_length)
-    xPd = xDBLe(xP, a24, ExponentFull - SQISIGN_challenge_length)
-    xQd = xDBLe(xQ, a24, ExponentFull - SQISIGN_challenge_length)
-    xPQd = xDBLe(xPQ, a24, ExponentFull - SQISIGN_challenge_length)
-    n1, n2, n3, n4 = ec_bi_dlog_commitment(A, xPc, xQc, xPQc, xPd, xQd, xPQd, global_data.E0_data)
+    xPd = xDBLe(xP, a24, ExponentSum - SQISIGN_challenge_length)
+    xQd = xDBLe(xQ, a24, ExponentSum - SQISIGN_challenge_length)
+    xPQd = xDBLe(xPQ, a24, ExponentSum - SQISIGN_challenge_length)
+    n1, n2, n3, n4 = ec_bi_dlog(A, xPc, xQc, xPQc, xPd, xQd, xPQd, global_data.E0_data.dlog_data[SQISIGN_challenge_length])
     M = [n1 n3; n2 n4]
-    return A, (I_sec, D_sec, xP, xQ, xPQ, xPc, xQc, xPQc), M
+    return A, (I_sec, xP, xQ, xPQ, xPc, xQc, xPQc), M
 end
 
 

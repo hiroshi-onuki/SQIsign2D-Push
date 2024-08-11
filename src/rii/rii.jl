@@ -1,9 +1,12 @@
 # return the codomain of a random d-isogeny from E0 and the images of the basis points
 function RandIsogImages(d::BigInt, global_data::GlobalData, compute_odd_points::Bool=false)
-    deg_dim2 = BigInt(1) << ExponentFull
+    deg_dim2 = BigInt(1) << ExponentSum
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
     xP0, xQ0, xPQ0 = E0_data.xP2e, E0_data.xQ2e, E0_data.xPQ2e
+    xP0 = xDBLe(xP0, a24_0, ExponentFull - ExponentSum)
+    xQ0 = xDBLe(xQ0, a24_0, ExponentFull - ExponentSum)
+    xPQ0 = xDBLe(xPQ0, a24_0, ExponentFull - ExponentSum)
 
     alpha, _ = FullRepresentInteger(d*(deg_dim2 - d))
 

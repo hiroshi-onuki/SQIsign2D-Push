@@ -10,6 +10,7 @@ const KLPT_keygen_number_strong_approx = 2639
 const SQISIGN_challenge_length = 128
 const IdealToIsogeny_2_e_good_attempts = 1000
 
+const SQISIGN2D_commmitment_degree = BigInt(3)^165
 const SQISIGN2D_Fp2_length = 66
 const SQISIGN2D_2a_length = Int(ceil(ExponentForDim2/8))
 const SQISIGN2D_signature_length = 2 * SQISIGN2D_Fp2_length + 4 * SQISIGN2D_2a_length + 1
