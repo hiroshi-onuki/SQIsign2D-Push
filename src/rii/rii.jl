@@ -130,9 +130,12 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     return a24d, xR, xS, xRS
 end
 
-function PushRandIsog(d::BigInt, a24m::Proj1{T}, a24::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Proj1{T}, xPQm::Proj1{T}, 
-        xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, M0::Matrix{BigInt}, Mm::Matrix{BigInt},
-        global_data::GlobalData) where T <: RingElem
+# return the codomain of a random d-isogeny from E and the image of (P, Q),
+# where there exist 2^b-isogenies E0 -(tau_1)-> Em -tau_2-> E
+# s.t. ker(tau_1) = <P0 + s0 Q0> and ker(tau_2) = <Pm + sm Qm>,
+# and P, Q are in E[2^(a+b)] satisfying hat(tau_2) * hat(tau_1)(P, Q) = (P0, Q0) Mm M0
+function PushRandIsog(d::BigInt, a24m::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Proj1{T}, xPQm::Proj1{T}, 
+        M0::Matrix{BigInt}, Mm::Matrix{BigInt}, global_data::GlobalData) where T <: RingElem
     two_to_ab = BigInt(1) << ExponentSum
 
     # d*(D1 - d)-isogeny: E0 -> F0d
