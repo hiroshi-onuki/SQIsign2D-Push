@@ -93,7 +93,6 @@ function key_gen(global_data::GlobalData)
     xP, xQ, xPQ = global_data.E0_data.xP2e, global_data.E0_data.xQ2e, global_data.E0_data.xPQ2e
     M = BigInt[1 0; 0 1]
     D = 1
-    alpha = Quaternion_1
     e = 2 * ExponentForDim1
     while e > 0
         ed = min(e, ExponentForId2IsoDim1)
@@ -102,11 +101,8 @@ function key_gen(global_data::GlobalData)
         I_d = larger_ideal(I, n_I_d)
         a24, xP, xQ, xPQ, M, beta, D = short_ideal_to_isogeny(I_d, a24, xP, xQ, xPQ, M, D, ed, global_data, is_normalized, Quaternion_0, 0, 0)
         I = ideal_transform(I, beta, n_I_d)
-        alpha = div(alpha * involution(beta), div(n_I_d, BigInt(2)^ed))
         e -= ed
     end
-    @assert norm(alpha) == norm(I) << (2*ExponentForDim1)
-    @assert isin(alpha, I)
     xP = xDBLe(xP, a24, ExponentFull - ExponentSum)
     xQ = xDBLe(xQ, a24, ExponentFull - ExponentSum)
     xPQ = xDBLe(xPQ, a24, ExponentFull - ExponentSum)
@@ -152,14 +148,6 @@ function key_gen(global_data::GlobalData)
         n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPmd, xQmd, xPQmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
     end
     M1 = [n1 n3; n2 n4] .% two_to_ab
-
-    Malpha = quaternion_to_matrix(alpha, global_data.E0_data.Matrices_2e)
-    Mialpha = quaternion_to_matrix(Quaternion_i * alpha, global_data.E0_data.Matrices_2e)
-    Malphai = quaternion_to_matrix(alpha * Quaternion_i, global_data.E0_data.Matrices_2e)
-    println((Malpha - M0 * M1) .% two_to_ab)
-    println((Mialpha - M0 * M1) .% two_to_ab)
-    println((Malphai - M0 * M1) .% two_to_ab)
-    @assert (Malpha - M0 * M1) .% two_to_ab == zeros(Int, 2, 2)
 
     return a24, (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I)
 end
