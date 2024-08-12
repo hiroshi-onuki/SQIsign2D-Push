@@ -149,11 +149,11 @@ function key_gen(global_data::GlobalData)
     end
     M1 = [n1 n3; n2 n4] .% two_to_ab
 
-    return a24, (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I)
+    return Montgomery_coeff(a24), (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I, D)
 end
 
 function commitment(global_data::GlobalData)
-    a24, xP, xQ, xPQ, I_sec = RandIsogImages(SQISIGN2D_commmitment_degree, global_data, false)
+    a24, xP, xQ, xPQ, I_sec = RandIsogImages(SQISIGN2D_commitment_degree, global_data, false)
     a24, (xP, xQ, xPQ) = Montgomery_normalize(a24, [xP, xQ, xPQ])
     A = Montgomery_coeff(a24)
     xPc, xQc, xPQc = torsion_basis(A, SQISIGN_challenge_length)
@@ -164,7 +164,6 @@ function commitment(global_data::GlobalData)
     M = [n1 n3; n2 n4]
     return A, (I_sec, xP, xQ, xPQ, xPc, xQc, xPQc), M
 end
-
 
 function challenge(A::FqFieldElem, m::String)
     if SQISIGN_challenge_length <= 256
@@ -183,6 +182,52 @@ function challenge(A::FqFieldElem, m::String)
 
     return c
 end
+
+function signing_new(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
+    A = pk
+    a24pub = A_to_a24(A)
+    a24m, s0, sm, M0, Mm, xPm, xQm, xPQm, xPpub, xQpub, xPQpub, Isec, Dsec = sk
+
+    # commitment
+    Acom, (Icom, xPcom, xQcom, xPQcom, xPcom_fix, xQcom_fix, xPQcom_fix), Mcom = commitment(global_data)
+    a24com = A_to_a24(Acom)
+
+    # challenge
+    cha = challenge(Acom, m)
+    a, b = Mcom * [1, cha]
+    a, b, c, d = global_data.E0_data.Matrix_2ed_inv * [b, 0, -a, 0]
+    alpha = QOrderElem(a, b, c, d)
+    Icha = LeftIdeal(alpha, BigInt(1) << SQISIGN_challenge_length)
+    Kcha = ladder3pt(cha, xPcom_fix, xQcom_fix, xPQcom_fix, a24com)
+    a24cha, (xPcha, xQcha, xPQcha) = two_e_iso(a24com, Kcha, SQISIGN_challenge_length, [xPcom, xQcom, xPQcom])
+    a24cha, (xPcha, xQcha, xPQcha) = Montgomery_normalize(a24cha, [xPcha, xQcha, xPQcha])
+    Acha = Montgomery_coeff(a24cha)
+
+    # find alpha in bar(Isec)IcomIcha suitable for the response
+    Icomcha = intersection(Icom, Icha)
+    I = involution_product(Isec, Icomcha)
+    nI = Dsec * SQISIGN2D_commitment_degree << SQISIGN_challenge_length
+    alpha, q, found = element_for_response(I, nI, ExponentForDim2)
+    !found && return BigInt(0)
+
+    # compute the image under the response sigma
+    Malpha = quaternion_to_matrix(involution(alpha), global_data.E0_data.Matrices_2e)
+    xPres, xQres, xPQres = action_of_matrix(Malpha, a24cha, xPcha, xQcha, xPQcha, ExponentSum)
+    xPres = ladder(SQISIGN2D_commitment_degree_inv, xPres, a24cha)
+    xQres = ladder(SQISIGN2D_commitment_degree_inv, xQres, a24cha)
+    xPQres = ladder(SQISIGN2D_commitment_degree_inv, xPQres, a24cha)
+
+    # compute an auxiliary path by PushRandIsog
+    a24aux, (xPaux, xQaux, xPQaux) = PushRandIsog(BigInt(1) << ExponentForDim2 - q, a24m, s0, sm, xPm, xQm, xPQm, M0, Mm, global_data)
+    
+    P1P2 = CouplePoint(xPres, xPaux)
+    Q1Q2 = CouplePoint(xQres, xQaux)
+    PQ1PQ2 = CouplePoint(xPQres, xPQaux)
+    product_isogeny_sqrt(a24cha, a24aux, P1P2, Q1Q2, PQ1PQ2, CouplePoint{FqFieldElem}[], CouplePoint{FqFieldElem}[], ExponentForDim2, StrategiesDim2[ExponentForDim2])
+
+    return q
+end
+
 
 function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_compact::Bool=false)
     A = pk

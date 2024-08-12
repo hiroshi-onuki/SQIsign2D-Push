@@ -148,7 +148,7 @@ function d2isogeny_form_Esquare(a24::Proj1{T}, d::BigInt, alpha::QOrderElem, xP0
     xP, xQ, xPQ = images[1][idx], images[2][idx], images[3][idx]
     A = Es[idx]
     if a24 == E0_data.a24_0
-        w0 = E0_data.Weil_P2eQ2e
+        w0 = E0_data.Weil_P2eQ2e^(BigInt(1) << (ExponentFull - ExponentSum))
     else
         w0 = Weil_pairing_2power(Montgomery_coeff(a24), xP0, xQ0, xPQ0, ExponentSum)
     end

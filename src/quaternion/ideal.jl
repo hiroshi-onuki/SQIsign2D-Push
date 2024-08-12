@@ -136,7 +136,7 @@ end
 # there exist d s.t. d | q_I(alpha), d | prod(factors),
 # q_I(alpha)/d < 2^a,
 # and -D*(2^ExponentFull - D) is a quadratic residue modulo N, where D = q_I(alpha)/d(2^c - q_I(alpha)/d)
-function element_for_response(I::LeftIdeal, nI::BigInt, a::Int, factors::Vector{Tuple{Int, Int}}, N::BigInt)
+function element_for_response(I::LeftIdeal, nI::BigInt, a::Int)
     q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
     bound = BigInt(1) << a
 
@@ -151,7 +151,7 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int, factors::Vector{
     U = zeros(Rational{Integer}, 4)
     L = zeros(Integer, 4)
     x = zeros(Integer, 4)
-    S[4] = (nI * prod([l^e for (l, e) in factors])) << a
+    S[4] = nI  << a
 
     i = 4
     tmp = div(S[i] * denominator(U[i])^2, q[i,i])
@@ -184,24 +184,7 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int, factors::Vector{
                 g = div(g, gcd(g, nI))
                 alpha = div(alpha, g)
                 newN = div(norm(alpha), nI)
-                if newN % 2 == 1
-                    divisors = [1]
-                    for (l, e) in factors
-                        divisors = [d * l^i for d in divisors for i in 0:e]
-                    end
-                    for d in divisors
-                        if newN % d == 0
-                            newNd = div(newN, d)
-                            if newNd < bound
-                                D = newNd * (bound - newNd)
-                                D = D * ((BigInt(1) << ExponentFull) - D)
-                                if quadratic_residue_symbol(-D, N) == 1
-                                    newNd * (bound - newNd) < BigInt(1) << ExponentFull && return alpha, d, true
-                                end
-                            end
-                        end
-                    end
-                end
+                newN % 2 == 1 && return alpha, newN, true
             else
                 return Quaternion_0, 0, false
             end
