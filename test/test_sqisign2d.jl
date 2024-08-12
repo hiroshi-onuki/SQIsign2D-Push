@@ -4,8 +4,7 @@ function check(param::Module, num::Int, is_compact::Bool)
     global_data = param.make_precomputed_values()
     for i in 1:num
         pk, sk = param.key_gen(global_data)
-        a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I, nI = sk
-        sign = param.signing(pk, sk, "message to sign", global_data, false)
+        sign = param.signing(pk, sk, "message to sign", global_data, true)
         ver = param.verify(pk, sign, "message to sign", global_data)
         println("ver: ", ver)
         #=

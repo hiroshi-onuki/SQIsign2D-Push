@@ -149,7 +149,7 @@ function key_gen(global_data::GlobalData)
     end
     M1 = [n1 n3; n2 n4] .% two_to_ab
 
-    return Montgomery_coeff(a24), (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I, D)
+    return Montgomery_coeff(a24), (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, invmod_2x2(M, two_to_ab), I, D)
 end
 
 function commitment(global_data::GlobalData)
@@ -185,9 +185,9 @@ end
 
 function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_compact::Bool)
     two_to_a = BigInt(1) << ExponentForDim2
-    A = pk
-    a24pub = A_to_a24(A)
-    a24m, s0, sm, M0, Mm, xPm, xQm, xPQm, xPpub, xQpub, xPQpub, Isec, Dsec = sk
+    Apub = pk
+    a24pub = A_to_a24(Apub)
+    a24m, s0, sm, M0, Mm, xPm, xQm, xPQm, Mpub, Isec, Dsec = sk
 
     while true
         # commitment
@@ -201,8 +201,13 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_com
         alpha = QOrderElem(a, b, c, d)
         Icha = LeftIdeal(alpha, BigInt(1) << SQISIGN_challenge_length)
         Kcha = ladder3pt(cha, xPcom_fix, xQcom_fix, xPQcom_fix, a24com)
-        a24cha, (xPcha, xQcha, xPQcha) = two_e_iso(a24com, Kcha, SQISIGN_challenge_length, [xPcom, xQcom, xPQcom])
-        a24cha, (xPcha, xQcha, xPQcha) = Montgomery_normalize(a24cha, [xPcha, xQcha, xPQcha])
+        if !is_compact
+            a24cha, (xPcha, xQcha, xPQcha) = two_e_iso(a24com, Kcha, SQISIGN_challenge_length, [xPcom, xQcom, xPQcom])
+            a24cha, (xPcha, xQcha, xPQcha) = Montgomery_normalize(a24cha, [xPcha, xQcha, xPQcha])
+        else
+            a24cha, (xPcha, xQcha, xPQcha, Kcha_dual) = two_e_iso(a24com, Kcha, SQISIGN_challenge_length, [xPcom, xQcom, xPQcom, xQcom_fix], StrategiesDim1[SQISIGN_challenge_length])
+            a24cha, (xPcha, xQcha, xPQcha, Kcha_dual) = Montgomery_normalize(a24cha, [xPcha, xQcha, xPQcha, Kcha_dual])
+        end
         Acha = Montgomery_coeff(a24cha)
 
         # find alpha in bar(Isec)IcomIcha suitable for the response
@@ -225,56 +230,160 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_com
         a24aux, (xPaux, xQaux, xPQaux) = PushRandIsog(two_to_a - q, a24m, s0, sm, xPm, xQm, xPQm, M0, Mm, global_data)
         Aaux = Montgomery_coeff(a24aux)
 
-        # adjust (Paux, Qaux) to be the preimage of the fixed basis of Echa[2^a]
-        xPfix, xQfix, xPQfix = torsion_basis(Acha, ExponentForDim2)
-        n1, n2, n3, n4 = ec_bi_dlog(Acha, xPfix, xQfix, xPQfix, xPres, xQres, xPQres, global_data.E0_data.dlog_data[ExponentForDim2])
         if !is_compact
+            # adjust (Paux, Qaux) to be the preimage of the fixed basis of Echa[2^a]
+            xPfix, xQfix, xPQfix = torsion_basis(Acha, ExponentForDim2)
+            n1, n2, n3, n4 = ec_bi_dlog(Acha, xPfix, xQfix, xPQfix, xPres, xQres, xPQres, global_data.E0_data.dlog_data[ExponentForDim2])
             n1 = n1 * SQISIGN2D_commitment_degree % two_to_a
             n2 = n2 * SQISIGN2D_commitment_degree % two_to_a
             n3 = n3 * SQISIGN2D_commitment_degree % two_to_a
             n4 = n4 * SQISIGN2D_commitment_degree % two_to_a
-        end
-        Maux = [n1 n3; n2 n4]
+            Maux = [n1 n3; n2 n4]
 
-        # compress the signature
-        sign = Vector{UInt8}(undef, SQISIGN2D_signature_length)
-        idx = 1
-        Acom_byte = Fq_to_bytes(Acom)
-        sign[idx:idx+SQISIGN2D_Fp2_length-1] = Acom_byte
-        idx += SQISIGN2D_Fp2_length
-        Aaux_byte = Fq_to_bytes(Aaux)
-        sign[idx:idx+SQISIGN2D_Fp2_length-1] = Aaux_byte
-        idx += SQISIGN2D_Fp2_length
-        xPfix, xQfix, xPQfix = torsion_basis(Aaux, ExponentForDim2)
-        n1, n2, n3, n4 = ec_bi_dlog(Aaux, xPaux, xQaux, xPQaux, xPfix, xQfix, xPQfix, global_data.E0_data.dlog_data[ExponentForDim2])
-        M = ([n1 n3; n2 n4] * Maux) .% two_to_a
-        n1, n2, n3, n4 = M
-        if n1 % 2 == 1
-            n1inv = invmod(n1, two_to_a)
-            n1d = sqrt_mod_2power(n1^2 % two_to_a, ExponentForDim2)
-            sign[idx] = ((n1d - n1) % two_to_a == 0 || (n1d + n1) % two_to_a == 0) ? 0x02 : 0x00
-            idx += 1
-            n2 = (n2 * n1inv) % two_to_a
-            n3 = (n3 * n1inv) % two_to_a
-            n4 = (n4 * n1inv) % two_to_a
-            for n in [n2, n3, n4]
-                n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
-                sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
-                idx += SQISIGN2D_2a_length
+            # compress the signature
+            sign = Vector{UInt8}(undef, SQISIGN2D_signature_length)
+            idx = 1
+            Acom_byte = Fq_to_bytes(Acom)
+            sign[idx:idx+SQISIGN2D_Fp2_length-1] = Acom_byte
+            idx += SQISIGN2D_Fp2_length
+            Aaux_byte = Fq_to_bytes(Aaux)
+            sign[idx:idx+SQISIGN2D_Fp2_length-1] = Aaux_byte
+            idx += SQISIGN2D_Fp2_length
+            xPfix, xQfix, xPQfix = torsion_basis(Aaux, ExponentForDim2)
+            n1, n2, n3, n4 = ec_bi_dlog(Aaux, xPaux, xQaux, xPQaux, xPfix, xQfix, xPQfix, global_data.E0_data.dlog_data[ExponentForDim2])
+            M = ([n1 n3; n2 n4] * Maux) .% two_to_a
+            n1, n2, n3, n4 = M
+            if n1 % 2 == 1
+                n1inv = invmod(n1, two_to_a)
+                n1d = sqrt_mod_2power(n1^2 % two_to_a, ExponentForDim2)
+                sign[idx] = ((n1d - n1) % two_to_a == 0 || (n1d + n1) % two_to_a == 0) ? 0x02 : 0x00
+                idx += 1
+                n2 = (n2 * n1inv) % two_to_a
+                n3 = (n3 * n1inv) % two_to_a
+                n4 = (n4 * n1inv) % two_to_a
+                for n in [n2, n3, n4]
+                    n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
+                    sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
+                    idx += SQISIGN2D_2a_length
+                end
+            else
+                n2inv = invmod(n2, two_to_a)
+                n2d = sqrt_mod_2power(n2^2 % two_to_a, ExponentForDim2)
+                sign[idx] = ((n2d - n2) % two_to_a == 0 || (n2d + n2) % two_to_a == 0) ? 0x03 : 0x01
+                idx += 1
+                n1 = (n1 * n2inv) % two_to_a
+                n3 = (n3 * n2inv) % two_to_a
+                n4 = (n4 * n2inv) % two_to_a
+                for n in [n1, n3, n4]
+                    n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
+                    sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
+                    idx += SQISIGN2D_2a_length
+                end
             end
         else
-            n2inv = invmod(n2, two_to_a)
-            n2d = sqrt_mod_2power(n2^2 % two_to_a, ExponentForDim2)
-            sign[idx] = ((n2d - n2) % two_to_a == 0 || (n2d + n2) % two_to_a == 0) ? 0x03 : 0x01
-            idx += 1
-            n1 = (n1 * n2inv) % two_to_a
-            n3 = (n3 * n2inv) % two_to_a
-            n4 = (n4 * n2inv) % two_to_a
-            for n in [n1, n3, n4]
-                n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
-                sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
-                idx += SQISIGN2D_2a_length
+            # (2^a, 2^a)-isogeny
+            O = infinity_point(global_data.Fp2)
+            xT1 = xDBLe(xPres, a24cha, ExponentForDim2 - 2)
+            xT2 = xDBLe(xPaux, a24aux, ExponentForDim2 - 2)
+            PresO = CouplePoint(xPres, O)
+            QresO = CouplePoint(xQres, O)
+            PQresO = CouplePoint(xPQres, O)
+            xPresT1 = ladder(1 + (two_to_a >> 2), xPres, a24cha)
+            xQresT1 = ladder3pt(two_to_a >> 2, xQres, xPres, xPQres, a24cha)
+            xPQresT1 = ladder3pt(two_to_a - 1 - (two_to_a >> 2), xQres, xPres, xPQres, a24cha)
+            PresT1T2 = CouplePoint(xPresT1, xT2)
+            QresT1T2 = CouplePoint(xQresT1, xT2)
+            PQresT1T2 = CouplePoint(xPQresT1, xT2)
+            Es, images = product_isogeny_sqrt(a24cha, a24aux, CouplePoint(xPres, xPaux), CouplePoint(xQres, xQaux), CouplePoint(xPQres, xPQaux), [PresO, QresO, PQresO], [PresT1T2, QresT1T2, PQresT1T2], ExponentForDim2, StrategiesDim2[ExponentForDim2])
+            idx = 1
+            xPauxd, xQauxd, xPQauxd = images[1][idx], images[2][idx], images[3][idx]
+            w0 = Weil_pairing_2power(Acha, xPres, xQres, xPQres, ExponentForDim2)
+            w1 = Weil_pairing_2power(affine(Es[idx]), xPauxd, xQauxd, xPQauxd, ExponentForDim2)
+            if w1 != w0^(-q)
+                idx = 2
             end
+            a24auxd = A_to_a24(Es[idx])
+            xPauxd, xQauxd, xPQauxd = images[1][idx], images[2][idx], images[3][idx]
+            a24auxd, (xPauxd, xQauxd, xPQauxd) = Montgomery_normalize(a24auxd, [xPauxd, xQauxd, xPQauxd])
+            Aauxd = Montgomery_coeff(a24auxd)
+            xPfix, xQfix, xPQfix = torsion_basis(Aauxd, ExponentForDim2)
+            n1, n2, n3, n4 = ec_bi_dlog(Aauxd, xPauxd, xQauxd, xPQauxd, xPfix, xQfix, xPQfix, global_data.E0_data.dlog_data[ExponentForDim2])
+            Mauxd = [n1 n3; n2 n4] * Mpub * invmod(q, two_to_a)
+            xPauxd, xQauxd, xPQauxd = action_of_matrix(Mauxd, a24auxd, xPfix, xQfix, xPQfix, ExponentForDim2)
+
+            # test
+            xPpub, xQpub, xPQpub = torsion_basis(Apub, ExponentFull)
+            xPpub = xDBLe(xPpub, a24pub, ExponentFull - ExponentForDim2)
+            xQpub = xDBLe(xQpub, a24pub, ExponentFull - ExponentForDim2)
+            xPQpub = xDBLe(xPQpub, a24pub, ExponentFull - ExponentForDim2)
+            Es, _ = product_isogeny_sqrt(a24pub, a24auxd, CouplePoint(xPpub, xPauxd), CouplePoint(xQpub, xQauxd), CouplePoint(xPQpub, xPQauxd), CouplePoint{FqFieldElem}[], CouplePoint{FqFieldElem}[], ExponentForDim2, StrategiesDim2[ExponentForDim2])
+
+            # information to recover the commitment
+            xPcha, xQcha, xPQcha = torsion_basis(Acha, SQISIGN_challenge_length)
+            a, b = ec_bi_dlog(Acha, Kcha_dual, xPcha, xQcha, xPQcha, global_data.E0_data.dlog_data[SQISIGN_challenge_length])
+
+            # compress the signature
+            sign = Vector{UInt8}(undef, CompactSQISIGN2D_signature_length)
+            idx = 1
+            Aauxd_byte = Fq_to_bytes(Aauxd)
+            sign[idx:idx+SQISIGN2D_Fp2_length-1] = Aauxd_byte
+            idx += SQISIGN2D_Fp2_length
+
+            n1, n2, n3, n4 = Mauxd .% two_to_a
+            if n1 % 2 == 1
+                n1inv = invmod(n1, two_to_a)
+                n1d = sqrt_mod_2power(n1^2 % two_to_a, ExponentForDim2)
+                sign[idx] = ((n1d - n1) % two_to_a == 0 || (n1d + n1) % two_to_a == 0) ? 0x02 : 0x00
+                idx += 1
+                n2 = (n2 * n1inv) % two_to_a
+                n3 = (n3 * n1inv) % two_to_a
+                n4 = (n4 * n1inv) % two_to_a
+                for n in [n2, n3, n4]
+                    n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
+                    sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
+                    idx += SQISIGN2D_2a_length
+                end
+            else
+                n2inv = invmod(n2, two_to_a)
+                n2d = sqrt_mod_2power(n2^2 % two_to_a, ExponentForDim2)
+                sign[idx] = ((n2d - n2) % two_to_a == 0 || (n2d + n2) % two_to_a == 0) ? 0x03 : 0x01
+                idx += 1
+                n1 = (n1 * n2inv) % two_to_a
+                n3 = (n3 * n2inv) % two_to_a
+                n4 = (n4 * n2inv) % two_to_a
+                for n in [n1, n3, n4]
+                    n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
+                    sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
+                    idx += SQISIGN2D_2a_length
+                end
+            end
+
+            if a % 2 == 1
+                sign[idx] = 0x00
+                idx += 1
+                b = (b * invmod(a, two_to_a)) % two_to_a
+                b_bytes = integer_to_bytes(b, SQISIGN2D_2a_length)
+                sign[idx:idx+SQISIGN2D_2a_length-1] = b_bytes
+                idx += SQISIGN2D_2a_length
+                xP = xQcha
+            else
+                sign[idx] = 0x01
+                idx += 1
+                a = (a * invmod(b, two_to_a)) % two_to_a
+                a_bytes = integer_to_bytes(a, SQISIGN2D_2a_length)
+                sign[idx:idx+SQISIGN2D_2a_length-1] = a_bytes
+                idx += SQISIGN2D_2a_length
+                xP = xPcha
+            end
+            a24com_d, image = two_e_iso(a24cha, Kcha_dual, SQISIGN_challenge_length, [xP], StrategiesDim1[SQISIGN_challenge_length])
+            a24com_d, image = Montgomery_normalize(a24com_d, image)
+            Kcha_d = image[1]
+            r = ec_dlog(Acom, Kcha, Kcha_d, xQcom_fix, global_data.E0_data)
+            sign[idx: idx+SQISIGN2D_2a_length-1] = integer_to_bytes(r, SQISIGN2D_2a_length)
+            idx += SQISIGN2D_2a_length
+            sign[idx] = lex_order(Aaux, Acha) ? 0x00 : 0x01
+            @assert idx == CompactSQISIGN2D_signature_length
+            @assert false
         end
 
         return sign

@@ -162,8 +162,8 @@ function ec_dlog(A::T, xP::Proj1{T}, xQ::Proj1{T}, xR::Proj1{T}, E0::E0Data) whe
     R = Point(A, xR)
     w1 = Weil_pairing_2power(A, P, R, SQISIGN_challenge_length)
     w2 = Weil_pairing_2power(A, Q, R, SQISIGN_challenge_length)
-    n1 = fq_dlog_power_of_2_opt(w1, E0.dlog_data_chall)
-    n2 = fq_dlog_power_of_2_opt(w2, E0.dlog_data_chall)
+    n1 = fq_dlog_power_of_2_opt(w1, E0.dlog_data[SQISIGN_challenge_length])
+    n2 = fq_dlog_power_of_2_opt(w2, E0.dlog_data[SQISIGN_challenge_length])
 
     return (n1 * invmod(n2, BigInt(2)^SQISIGN_challenge_length)) % BigInt(2)^SQISIGN_challenge_length
 end
