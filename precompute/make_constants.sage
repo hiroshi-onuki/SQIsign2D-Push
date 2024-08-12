@@ -78,18 +78,18 @@ make_constants(p, e, ed, degs, degs_d, "level1torsion.txt")
 
 # level3
 set_random_seed(0)
-p = 2^370 * 3 * 7 * 11 - 1
-e = 370
+p = 2^389 * 12 - 1
+e = 391
 ed = 192
-degs = 3 * 7 * 11
+degs = 2
 degs_d = 1
 make_constants(p, e, ed, degs, degs_d, "level3torsion.txt")
 
 # level5
 set_random_seed(0)
-p = 2^492 * 7^2 * 11 - 1
-e = 492
+p = 2^517 * 16 - 1
+e = 521
 ed = 256
-degs = 7^2 * 11
-degs_d = 3
+degs = 1
+degs_d = 1
 make_constants(p, e, ed, degs, degs_d, "level5torsion.txt")
