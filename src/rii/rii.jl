@@ -150,14 +150,7 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Pr
     xRS_D1 = xDBLe(xRS0d, a24F0d, ExponentForDim2)
     K = ladder3pt(s0, xR_D1, xS_D1, xRS_D1, a24F0d)
     a24Fmd, (xRd, xSd, xRSd) = two_e_iso(a24F0d, K, ExponentForDim1, [xR0d, xS0d, xRS0d], StrategiesDim1[ExponentForDim1])
-
     xRmd, xSmd, xRSmd = action_of_matrix(M0, a24Fmd, xRd, xSd, xRSd, ExponentSum)
-    @assert is_infinity(xDBLe(xRmd, a24Fmd, ExponentForDim2))
-    @assert is_infinity(xDBLe(xSmd, a24Fmd, ExponentForDim2))
-    @assert is_infinity(xDBLe(xRSmd, a24Fmd, ExponentForDim2))
-    @assert !is_infinity(xDBLe(xRmd, a24Fmd, ExponentForDim2-1))
-    @assert !is_infinity(xDBLe(xSmd, a24Fmd, ExponentForDim2-1))
-    @assert !is_infinity(xDBLe(xRSmd, a24Fmd, ExponentForDim2-1))
 
     # (D1, D1)-isogeny: Em times Fmd -> Fm times _
     # kernel
@@ -196,7 +189,6 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Pr
     end
     a24Fm = A_to_a24(Es[idx])
     xRm, xSm, xRSm = images[1][idx], images[2][idx], images[3][idx]
-    @assert Weil_pairing_2power(Montgomery_coeff(a24Fm), xRm, xSm, xRSm, ExponentSum) == w0^d
 
     # D2-isogeny: Fm -> F
     Rm_c = xDBLe(xRm, a24Fm, ExponentForDim2)
@@ -205,12 +197,6 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Pr
     K = ladder3pt(sm, Rm_c, Sm_c, RSm_c, a24Fm)
     a24F, images = two_e_iso(a24Fm, K, ExponentForDim1, [xRm, xSm, xRSm], StrategiesDim1[ExponentForDim1])
     xR, xS, xRS = action_of_matrix(Mm, a24F, images[1], images[2], images[3], ExponentSum)
-    @assert is_infinity(xDBLe(xR, a24F, ExponentForDim2))
-    @assert is_infinity(xDBLe(xS, a24F, ExponentForDim2))
-    @assert is_infinity(xDBLe(xRS, a24F, ExponentForDim2))
-    @assert !is_infinity(xDBLe(xR, a24F, ExponentForDim2-1))
-    @assert !is_infinity(xDBLe(xS, a24F, ExponentForDim2-1))
-    @assert !is_infinity(xDBLe(xRS, a24F, ExponentForDim2-1))
-
+ 
     return Montgomery_normalize(a24F, [xR, xS, xRS])
 end

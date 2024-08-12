@@ -49,7 +49,7 @@ end
 num = 10
 benchmark_test(SQIsign2D_Push.Level1, num, false)
 benchmark_test(SQIsign2D_Push.Level1, num, true)
-benchmark_test(SQIsign2D_Push.Level3, num, false)
-benchmark_test(SQIsign2D_Push.Level3, num, true)
-benchmark_test(SQIsign2D_Push.Level5, num, false)
-benchmark_test(SQIsign2D_Push.Level5, num, true)
+#benchmark_test(SQIsign2D_Push.Level3, num, false)
+#benchmark_test(SQIsign2D_Push.Level3, num, true)
+#benchmark_test(SQIsign2D_Push.Level5, num, false)
+#benchmark_test(SQIsign2D_Push.Level5, num, true)

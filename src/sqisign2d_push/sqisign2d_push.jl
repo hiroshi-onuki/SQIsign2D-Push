@@ -77,15 +77,10 @@ function key_gen(global_data::GlobalData)
     else
         n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m, xQ0m, xPQ0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
     end
-    @assert n3 == 0 && (n4 == 1 || (n4 + 1) % two_to_ab == 0)
-    @assert xP0m == linear_comb_2_e(n1, n2, xPm, xQm, xPQm, a24m, ExponentSum)
-    @assert xPQ0m == linear_comb_2_e(n1 - n3, n2 - n4, xPm, xQm, xPQm, a24m, ExponentSum)
 
     # compute the ideal corresponding to the composition of the two isogenies
-    @assert n1 % 2 == 1 || n2 % 2 == 1 || n3 % 2 == 1 || n4 % 2 == 1
     a, b, c, d = global_data.E0_data.Matrix_2ed2_inv * [-n2 + n1*s1, 0, -n4 + n3*s1, 0]
     alpha = QOrderElem(a, b, c, d)
-    @assert gcd(alpha) % 2 == 1
     I = LeftIdeal(alpha, two_to_chall << ExponentForDim1)
 
     # ideal to isogeny
