@@ -234,7 +234,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_com
             n3 = n3 * SQISIGN2D_commitment_degree % two_to_a
             n4 = n4 * SQISIGN2D_commitment_degree % two_to_a
         end
-        xPaux, xQaux, xPQaux = action_of_matrix([n1 n3; n2 n4], a24aux, xPaux, xQaux, xPQaux, ExponentForDim2)
+        Maux = [n1 n3; n2 n4]
 
         # compress the signature
         sign = Vector{UInt8}(undef, SQISIGN2D_signature_length)
@@ -247,6 +247,8 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_com
         idx += SQISIGN2D_Fp2_length
         xPfix, xQfix, xPQfix = torsion_basis(Aaux, ExponentForDim2)
         n1, n2, n3, n4 = ec_bi_dlog(Aaux, xPaux, xQaux, xPQaux, xPfix, xQfix, xPQfix, global_data.E0_data.dlog_data[ExponentForDim2])
+        M = ([n1 n3; n2 n4] * Maux) .% two_to_a
+        n1, n2, n3, n4 = M
         if n1 % 2 == 1
             n1inv = invmod(n1, two_to_a)
             n1d = sqrt_mod_2power(n1^2 % two_to_a, ExponentForDim2)
