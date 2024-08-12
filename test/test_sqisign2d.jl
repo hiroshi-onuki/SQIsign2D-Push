@@ -5,9 +5,8 @@ function check(param::Module, num::Int, is_compact::Bool)
     for i in 1:num
         pk, sk = param.key_gen(global_data)
         a24m, s0, s1, M0, M1, xPm, xQm, xPQm, xP, xQ, xPQ, I, nI = sk
-        param.PushRandIsog(BigInt(13123214321), a24m, s0, s1, xPm, xQm, xPQm, M0, M1, global_data)
-        q = param.signing_new(pk, sk, "message to sign", global_data)
-        println(i, " ", q)
+        sign = param.signing_new(pk, sk, "message to sign", global_data)
+        println(i, " ", sign)
         #=
         m = "hello"
         sign = param.signing(pk, sk, m, global_data, is_compact)

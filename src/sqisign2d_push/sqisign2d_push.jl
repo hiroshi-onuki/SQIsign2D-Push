@@ -184,6 +184,7 @@ function challenge(A::FqFieldElem, m::String)
 end
 
 function signing_new(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
+    two_to_a = BigInt(1) << ExponentForDim2
     A = pk
     a24pub = A_to_a24(A)
     a24m, s0, sm, M0, Mm, xPm, xQm, xPQm, xPpub, xQpub, xPQpub, Isec, Dsec = sk
@@ -218,14 +219,47 @@ function signing_new(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     xPQres = ladder(SQISIGN2D_commitment_degree_inv, xPQres, a24cha)
 
     # compute an auxiliary path by PushRandIsog
-    a24aux, (xPaux, xQaux, xPQaux) = PushRandIsog(BigInt(1) << ExponentForDim2 - q, a24m, s0, sm, xPm, xQm, xPQm, M0, Mm, global_data)
-    
-    P1P2 = CouplePoint(xPres, xPaux)
-    Q1Q2 = CouplePoint(xQres, xQaux)
-    PQ1PQ2 = CouplePoint(xPQres, xPQaux)
-    product_isogeny_sqrt(a24cha, a24aux, P1P2, Q1Q2, PQ1PQ2, CouplePoint{FqFieldElem}[], CouplePoint{FqFieldElem}[], ExponentForDim2, StrategiesDim2[ExponentForDim2])
+    a24aux, (xPaux, xQaux, xPQaux) = PushRandIsog(two_to_a - q, a24m, s0, sm, xPm, xQm, xPQm, M0, Mm, global_data)
+    Aaux = Montgomery_coeff(a24aux)
 
-    return q
+    # compress the signature
+    sign = Vector{UInt8}(undef, SQISIGN2D_signature_length)
+    idx = 1
+    Acom_byte = Fq_to_bytes(Acom)
+    sign[idx:idx+SQISIGN2D_Fp2_length-1] = Acom_byte
+    idx += SQISIGN2D_Fp2_length
+    Aaux_byte = Fq_to_bytes(Aaux)
+    sign[idx:idx+SQISIGN2D_Fp2_length-1] = Aaux_byte
+    idx += SQISIGN2D_Fp2_length
+    xPfix, xQfix, xPQfix = torsion_basis(Aaux, ExponentForDim2)
+    n1, n2, n3, n4 = ec_bi_dlog(Aaux, xPaux, xQaux, xPQaux, xPfix, xQfix, xPQfix, global_data.E0_data.dlog_data[ExponentForDim2])
+    if n1 % 2 == 1
+        sign[idx] = 0x00
+        idx += 1
+        n1inv = invmod(n1, two_to_a)
+        n2 = (n2 * n1inv) % two_to_a
+        n3 = (n3 * n1inv) % two_to_a
+        n4 = (n4 * n1inv) % two_to_a
+        for n in [n2, n3, n4]
+            n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
+            sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
+            idx += SQISIGN2D_2a_length
+        end
+    else
+        sign[idx] = 0x01
+        idx += 1
+        n2inv = invmod(n2, two_to_a)
+        n1 = (n1 * n2inv) % two_to_a
+        n3 = (n3 * n2inv) % two_to_a
+        n4 = (n4 * n2inv) % two_to_a
+        for n in [n1, n3, n4]
+            n_bytes = integer_to_bytes(n, SQISIGN2D_2a_length)
+            sign[idx:idx+SQISIGN2D_2a_length-1] = n_bytes
+            idx += SQISIGN2D_2a_length
+        end
+    end
+
+    return sign
 end
 
 
