@@ -1,21 +1,5 @@
 using SHA
 
-# Sample a random ideal of prime norm 2^e for test
-function sample_random_ideal_2e(e::Int)
-    gamma = Quaternion_1
-    while norm(gamma) % BigInt(2)^e != 0
-        gamma, found = FullRepresentInteger(BigInt(2)^(Log2p + e))
-        !found && continue
-        gamma = div(gamma, gcd(gamma))
-        if gcd(gamma * (Quaternion_1 - Quaternion_i)) % 2 == 0
-            gamma = div(gamma * (Quaternion_1 - Quaternion_i), 2)
-        end
-    end
-    I = LeftIdeal(gamma, BigInt(2)^e)
-    a = rand(1:BigInt(2)^(e))
-    return pushforward((1 + a) * Quaternion_1 + a * Quaternion_j, I)
-end
-
 # return a random prime <= 2^KLPT_secret_key_prime_size and = 3 mod 4
 function random_secret_prime()
     B = BigInt(floor(p^(1/4)))
@@ -24,29 +8,6 @@ function random_secret_prime()
         n = rand(1:B)
     end
     return n
-end
-
-function auxiliary_path(a24::Proj1{T}, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, odd_images::Vector{Proj1{T}},
-                        I::LeftIdeal, nI::BigInt, q::BigInt, global_data::GlobalData) where T <: RingElem
-    c = ExponentForTorsion
-    r = (BigInt(1) << c) - q
-    d = q * r
-    a24d, xPd, xQd, xPQd = GeneralizedRandomIsogImages(d, a24, xP, xQ, xPQ, I, nI, global_data)
-
-    q_inv = invmod(q, BigInt(1) << c)
-    xP = xDBLe(xP, a24, ExponentFull - c)
-    xQ = xDBLe(xQ, a24, ExponentFull - c)
-    xPQ = xDBLe(xPQ, a24, ExponentFull - c)
-    xPd = xDBLe(xPd, a24d, ExponentFull - c)
-    xQd = xDBLe(xQd, a24d, ExponentFull - c)
-    xPQd = xDBLe(xPQd, a24d, ExponentFull - c)
-    xPd = ladder(q_inv, xPd, a24d)
-    xQd = ladder(q_inv, xQd, a24d)
-    xPQd = ladder(q_inv, xPQd, a24d)
-
-    a24aux, xPaux, xQaux, xPQaux, images = d2isogeny(a24, a24d, xP, xQ, xPQ, xPd, xQd, xPQd, c, r, odd_images, global_data)
-
-    return a24aux, xPaux, xQaux, xPQaux, images
 end
 
 function key_gen(global_data::GlobalData)
