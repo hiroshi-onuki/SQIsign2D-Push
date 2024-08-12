@@ -4,19 +4,13 @@ function check(param::Module, num::Int, is_compact::Bool)
     global_data = param.make_precomputed_values()
     for i in 1:num
         pk, sk = param.key_gen(global_data)
-        sign = param.signing(pk, sk, "message to sign", global_data, true)
-        ver = param.verify(pk, sign, "message to sign", global_data)
-        println("ver: ", ver)
-        #=
-        m = "hello"
-        sign = param.signing(pk, sk, m, global_data, is_compact)
-        i == 1 && println("sign len: ", length(sign))
-        if !is_compact
-            @assert param.verify(pk, sign, m, global_data)
+        sign = param.signing(pk, sk, "message to sign", global_data, is_compact)
+        if is_compact
+             ver = param.verify_compact(pk, sign, "message to sign", global_data)
         else
-            @assert param.verify_compact(pk, sign, m, global_data)
+            ver = param.verify(pk, sign, "message to sign", global_data)
         end
-        =#
+        println("ver: ", ver)
     end
 end
 
