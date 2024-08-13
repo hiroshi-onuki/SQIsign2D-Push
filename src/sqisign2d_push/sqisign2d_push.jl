@@ -131,10 +131,11 @@ function challenge(A::FqFieldElem, m::String)
     c = BigInt(0)
     len = SQISIGN_challenge_length
     n, r = divrem(len, 8)
-    for i in 1:(n+1)
+    r > 0 && (n += 1)
+    for i in 1:n
         c += BigInt(h[i]) << (8*(i-1))
     end
-    c >>= 8 - r
+    r > 0 && (c >>= 8 - r)
 
     return c
 end

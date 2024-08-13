@@ -129,11 +129,12 @@ end
 function make_precomputed_values()
     Fp2, E0 = make_E0_data()
 
-    precomputed_orders_data = [order_data_2, order_data_13, order_data_15]
+    precomputed_orders_data = [order_data_2, order_data_5, order_data_7, order_data_10]
     orders_data = [compute_order(Fp2, E0, order_data) for order_data in precomputed_orders_data]
     @assert orders_data[1].j_inv == 8000
-    @assert orders_data[2].j_inv^2 - 6896880000*orders_data[2].j_inv - 567663552000000 == 0
-    @assert orders_data[3].j_inv^2 + 191025*orders_data[3].j_inv - 121287375 == 0
-
+    @assert orders_data[2].j_inv^2 - 1264000*orders_data[2].j_inv - 681472000 == 0
+    @assert orders_data[3].j_inv == -3375
+    @assert orders_data[4].j_inv^2 - 425692800*orders_data[4].j_inv + 9103145472000 == 0
+    
     return GlobalData(Fp2, E0, orders_data)
 end

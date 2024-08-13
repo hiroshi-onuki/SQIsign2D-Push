@@ -17,3 +17,5 @@ end
 
 check(SQIsign2D_Push.Level1, 10, false)
 check(SQIsign2D_Push.Level1, 10, true)
+check(SQIsign2D_Push.Level5, 10, false)
+check(SQIsign2D_Push.Level5, 10, true)
