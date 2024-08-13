@@ -9,7 +9,10 @@ struct param
     ds::Vector{Int}
 end
 
-params = [param(SQIsign2D_Push.Level1, 1, [2, 13, 15])]
+params = [
+            param(SQIsign2D_Push.Level1, 1, [2, 13, 15]), 
+            param(SQIsign2D_Push.Level5, 5, [2, 5, 7, 10])
+        ]
 
 for param in params
     println("Making order data for $(param.mod)")
