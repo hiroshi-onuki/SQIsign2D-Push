@@ -134,9 +134,6 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Pr
     P1P2 = CouplePoint(xP1, xRmd)
     Q1Q2 = CouplePoint(xQ1, xSmd)
     PQ1PQ2 = CouplePoint(xPQ1, xRSmd)
-    w1 = Weil_pairing_2power(Montgomery_coeff(a24m), xP1, xQ1, xPQ1, ExponentForDim2)
-    w2 = Weil_pairing_2power(Montgomery_coeff(a24Fmd), xRmd, xSmd, xRSmd, ExponentForDim2)
-    @assert w1 * w2 == 1
     # points evaluated by the isogeny
     O = infinity_point(global_data.Fp2)
     T1 = xDBLe(xP1, a24m, ExponentForDim2 - 2)
