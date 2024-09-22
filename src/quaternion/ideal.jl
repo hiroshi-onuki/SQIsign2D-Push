@@ -75,7 +75,7 @@ end
 # return alpha in I and a, b s.t. 2^e - norm(alpha)/norm(I) = a^2 + d*b^2
 # a, b is given by cor_func in the argument
 function two_e_good_element(I::LeftIdeal, nI::BigInt, cor_func::Function, bound::BigInt, max_tries::Integer=100)
-    q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
+    q(x, y) = div(quadratic_form(QOrderElem(x), QOrderElem(y)), 2)
 
     # LLL reduction
     Imatrix = ideal_to_matrix(I)
@@ -137,7 +137,7 @@ end
 # q_I(alpha)/d < 2^a,
 # and -D*(2^ExponentFull - D) is a quadratic residue modulo N, where D = q_I(alpha)/d(2^c - q_I(alpha)/d)
 function element_for_response(I::LeftIdeal, nI::BigInt, a::Int)
-    q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
+    q(x, y) = div(quadratic_form(QOrderElem(x), QOrderElem(y)), 2)
     bound = BigInt(1) << a
 
     # LLL reduction
