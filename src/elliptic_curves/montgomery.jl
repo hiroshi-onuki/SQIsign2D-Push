@@ -1,8 +1,9 @@
-export xDBL, xADD, xDBLADD, xDBLe, ladder, ladder3pt, x_add_sub,
-    linear_comb_2_e, random_point, random_point_order_2power, random_point_order_l,
+export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
+    linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, jInvariant_a24, jInvariant_A,
-    two_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
-    Montgomery_normalize, complete_basis
+    two_e_iso, three_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
+    Montgomery_normalize, complete_basis,
+    three_iso_curve, three_iso_eval # temporary!
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -22,20 +23,6 @@ function random_point(A::Proj1{T}) where T <: RingElem
     end
 end
 
-# random point on a Montgomery curve with order 2^e
-function random_point_order_2power(A::T, curve_order::Integer, e::Integer) where T <: RingElem
-    F = parent(A)
-    a24 = Proj1(A + 2, F(4))
-    n = div(curve_order, BigInt(2)^e)
-    while true
-        P = random_point(A)
-        P = ladder(n, P, a24)
-        if !is_infinity(xDBLe(P, a24, e-1))
-            return P
-        end
-    end
-end
-
 # random point on a Montgomery curve with prime order l
 function random_point_order_l(a24::Proj1{T}, curve_order::Integer, l::Integer) where T <: RingElem
     n = div(curve_order, l)
@@ -44,6 +31,21 @@ function random_point_order_l(a24::Proj1{T}, curve_order::Integer, l::Integer) w
         P = random_point(A)
         P = ladder(n, P, a24)
         if !is_infinity(P)
+            return P
+        end
+    end
+end
+
+# random point on a Montgomery curve with order l^e
+function random_point_order_l_power(A::T, curve_order::Integer, l::Integer, e::Integer) where T <: RingElem
+    F = parent(A)
+    a24 = Proj1(A + 2, F(4))
+    n = div(curve_order, BigInt(l)^e)
+    le1 = BigInt(l)^(e-1)
+    while true
+        P = random_point(A)
+        P = ladder(n, P, a24)
+        if !is_infinity(ladder(le1, P, a24))
             return P
         end
     end
@@ -65,11 +67,48 @@ function xDBL(P::Proj1{T}, a24::Proj1{T}) where T <: RingElem
     return Proj1(X, Z);
 end
 
+# return [3]P on Mont_A with a24pm = (A + 2 : A - 2)
+function xTPL(P::Proj1{T}, a24pm::Proj1{T}) where T <: RingElem
+    t0 = P.X - P.Z
+    t2 = t0^2
+    t1 = P.X + P.Z
+    t3 = t1^2
+    t4 = t1 + t0
+    t0 = t1 - t0
+    t1 = t4^2
+    t1 -= t3
+    t1 -= t2
+    t5 = t3 * a24pm.X
+    t3 *= t5
+    t6 = t2 * a24pm.Z
+    t2 *= t6
+    t3 = t2 - t3
+    t2 = t5 - t6
+    t1 *= t2
+    t2 = t3 + t1
+    t2 *= t2
+    X = t2 * t4
+    t1 = t3 - t1
+    t1 *= t1
+    Z = t1 * t0
+    return Proj1(X, Z)
+end
+
 # return [2^e]P on Mont_A with a24 = (A + 2)/4.
 function xDBLe(P::Proj1{T}, a24::Proj1{T}, e::Int) where T <: RingElem
     outP = P
     for _ in 1:e
         outP = xDBL(outP, a24)
+    end
+
+    return outP
+end
+
+# return [3^e]P on Mont_A with a24pm = (A + 2 : A - 2)
+function xTPLe(P::Proj1{T}, a24pm::Proj1{T}, e::Int) where T <: RingElem
+    outP = P
+    for _ in 1:e
+        outP = xTPL(outP, a24pm)
     end
 
     return outP
@@ -408,6 +447,54 @@ function four_iso(a24::Proj1{T}, ker::Proj1{T}, Qs::Vector{Proj1{T}}) where T <:
     return a24, imQs
 end
 
+# 3-isogeny, return (A + 2 : A - 2) and (K1, K2), where Mont_A = E/<P> with ord(P) = 3.
+function three_iso_curve(P::Proj1)
+    K1 = P.X - P.Z
+    t0 = K1^2
+    K2 = P.X + P.Z
+    t1 = K2^2
+    t2 = t0 + t1
+    t3 = K1 + K2
+    t3 *= t3
+    t3 -= t2
+    t2 = t1 + t3
+    t3 += t0
+    t4 = t3 + t0
+    t4 += t4
+    t4 += t1
+    a24m = t2 * t4
+    t4 = t1 + t2
+    t4 += t4
+    t4 += t0
+    a24p = t3 * t4
+    return Proj1(a24p, a24m), K1, K2
+end
+
+# The image of 3-isogeny using an output (K1, K2) of three_iso_curve().
+function three_iso_eval(K1::T, K2::T, Q::Proj1{T}) where T <: RingElem
+    t0 = Q.X + Q.Z
+    t1 = Q.X - Q.Z
+    t0 *= K1
+    t1 *= K2
+    t2 = t0 + t1
+    t0 = t1 - t0
+    t2 *= t2
+    t0 *= t0
+    X = Q.X * t2
+    Z = Q.Z * t0
+    return Proj1(X, Z)
+end
+
+# 3-isogeny with kernel <P>
+function three_iso(P::Proj1{T}, Qs::Vector{Proj1{T}}) where T <: RingElem
+    a24pm, K1, K2 = three_iso_curve(P)
+    imQs = Vector{Proj1{T}}(undef, length(Qs))
+    for i in 1:length(Qs)
+        imQs[i] = three_iso_eval(K1, K2, Qs[i])
+    end
+    return a24pm, imQs
+end
+
 # 2^e-isogeny with kernel <K>. A = (a + 2)/4.
 function two_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}) where T <: RingElem
     k = e-2
@@ -493,6 +580,48 @@ function two_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}, str
     else
         return a24, Ps, a24_neighbor
     end
+end
+
+# 3^e-isogeny with kernel <K>. A = (a + 2)/4.
+function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}) where T <: RingElem
+    a24pm = Proj1(a24.X, a24.X - a24.Z)
+    k = e-1
+    while k >= 0
+        ker = xTPLe(P, a24pm, k)
+        a24pm, K1, K2 = three_iso_curve(ker)
+        k != 0 && (P = three_iso_eval(K1, K2, P))
+        for i in 1:length(Qs)
+            Qs[i] = three_iso_eval(K1, K2, Qs[i])
+        end
+        k -= 1
+    end
+    a24 = Proj1(a24pm.X, a24pm.X - a24pm.Z)
+    return a24, Qs
+end
+
+# 3^e-isogeny using strategy. A = (a + 2)/4.
+function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}, strategy::Vector{Int}) where T <: RingElem
+    a24pm = Proj1(a24.X, a24.X - a24.Z)
+    S = [e]
+    Ps = vcat(Qs, [P])
+    i = 1
+    while length(S) > 0
+        h = pop!(S)
+        K = pop!(Ps)
+        if h == 1
+            a24pm, Ps = three_iso(K, Ps)
+            S = [h - 1 for h in S]
+        else
+            push!(S, h)
+            push!(Ps, K)
+            K = xTPLe(K, a24pm, strategy[i])
+            push!(S, h - strategy[i])
+            push!(Ps, K)
+            i += 1
+        end
+    end
+    a24 = Proj1(a24pm.X, a24pm.X - a24pm.Z)
+    return a24, Ps
 end
 
 # isogeny of odd degree d
