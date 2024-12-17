@@ -11,9 +11,9 @@ const SQISIGN_challenge_length = 128
 const IdealToIsogeny_2_e_good_attempts = 1000
 
 const SQISIGN2D_commitment_degree = BigInt(3)^165
-const SQISIGN2D_commitment_degree_inv = invmod(SQISIGN2D_commitment_degree, BigInt(1) << ExponentForDim2)
+#const SQISIGN2D_commitment_degree_inv = invmod(SQISIGN2D_commitment_degree, BigInt(1) << ExponentForDim2)
 const SQISIGN2D_Fp2_length = 68
-const SQISIGN2D_2a_length = Int(ceil(ExponentForDim2/8))
+const SQISIGN2D_2a_length = Int(ceil(ExponentOfTwo/8))
 const SQISIGN2D_challenge_byte_length = Int(ceil(SQISIGN_challenge_length/8))
 const SQISIGN2D_signature_length = 2 * SQISIGN2D_Fp2_length + 3 * SQISIGN2D_2a_length + 1
 const CompactSQISIGN2D_signature_length = SQISIGN2D_Fp2_length + 3 * SQISIGN2D_2a_length + 2 * SQISIGN2D_challenge_byte_length + 3

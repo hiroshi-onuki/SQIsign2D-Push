@@ -37,19 +37,14 @@ struct E0Data
     xP2e::Proj1{FqFieldElem}
     xQ2e::Proj1{FqFieldElem}
     xPQ2e::Proj1{FqFieldElem}
-    xP2e_id2iso_d2::Proj1{FqFieldElem}
-    xQ2e_id2iso_d2::Proj1{FqFieldElem}
-    xPQ2e_id2iso_d2::Proj1{FqFieldElem}
-    DegreesOddTorsionBases::Vector{Int}
-    ExponentsOddTorsionBases::Vector{Int}
-    OddTorsionBases::Vector{Vector{Proj1{FqFieldElem}}}
     Matrices_2e::Vector{Matrix{BigInt}}
-    Matrix_2ed_inv::Matrix{BigInt}
-    Matrix_2ed2_inv::Matrix{BigInt}
-    Matrices_odd::Vector{Vector{Matrix{Int}}}
+    xP3e::Proj1{FqFieldElem}
+    xQ3e::Proj1{FqFieldElem}
+    xPQ3e::Proj1{FqFieldElem}
+    Matrices_3e::Vector{Matrix{BigInt}}
     Weil_P2eQ2e::FqFieldElem
     isomorphism_to_A0::Function
-    dlog_data::Dict{Int, DlogData}
+    dlog_data::DlogData
     tate_table::Vector{Vector{FqFieldElem}}
 end
 
@@ -57,5 +52,4 @@ end
 struct GlobalData
     Fp2::FqField
     E0_data::E0Data
-    orders_data::Vector{OrderData}
 end
