@@ -12,10 +12,11 @@ function action_of_matrix(M::Matrix{BigInt}, a24::Proj1{T}, xP::Proj1{T}, xQ::Pr
     return xP_new, xQ_new, xPQ_new
 end
 
-# alpha(P), alpha(Q) for a fixed basis (P, Q) of E[2^ExponentFull]
-function action_on_torsion_basis(alpha::QOrderElem, a24::Proj1{T}, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, E0_data::E0Data) where T <: RingElem
+# alpha(P), alpha(Q) for a fixed basis (P, Q) of E[2^e2]
+function action_on_torsion_basis(alpha::QOrderElem, a24::Proj1{T}, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, E0_data::E0Data, mult::Integer=1) where T <: RingElem
     M = quaternion_to_matrix(alpha, E0_data.Matrices_2e)
-    return action_of_matrix(M, a24, xP, xQ, xPQ, ExponentFull)
+    M = (M * mult) .% (BigInt(1) << ExponentOfTwo)
+    return action_of_matrix(M, a24, xP, xQ, xPQ, ExponentOfTwo)
 end
 
 # return (a, b) s.t. E0[(alpha, l^e)] = <[a]P0, [b]Q0>

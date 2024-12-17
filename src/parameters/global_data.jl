@@ -26,21 +26,23 @@ struct OrderData
     dlog_base::BigInt
 end
 
+struct BasisData
+    xP::Proj1{FqFieldElem}
+    xQ::Proj1{FqFieldElem}
+    xPQ::Proj1{FqFieldElem}
+end
+
 struct E0Data
     A0::FqFieldElem
     A0d::FqFieldElem
     A0dd::FqFieldElem
     a24_0::Proj1{FqFieldElem}
     j0::FqFieldElem
-    P2e::Point{FqFieldElem}
-    Q2e::Point{FqFieldElem}
-    xP2e::Proj1{FqFieldElem}
-    xQ2e::Proj1{FqFieldElem}
-    xPQ2e::Proj1{FqFieldElem}
+    basis2e3e::BasisData
+    basis2e3ed::BasisData
+    basis2e::BasisData
+    basis3e::BasisData
     Matrices_2e::Vector{Matrix{BigInt}}
-    xP3e::Proj1{FqFieldElem}
-    xQ3e::Proj1{FqFieldElem}
-    xPQ3e::Proj1{FqFieldElem}
     Matrices_3e::Vector{Matrix{BigInt}}
     Weil_P2eQ2e::FqFieldElem
     isomorphism_to_A0::Function
