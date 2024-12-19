@@ -71,7 +71,7 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     a24 = A_to_a24(Es[idx])
     x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
 
-    w0 = global_data.E0_data.Weil_P2eQ2e
+    w0 = Weil_pairing_2power(Montgomery_coeff(a24d), xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo)
     w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, ExponentOfTwo)
     if w1 != w0^(two_to_e2 - d)
         idx = 2
@@ -81,7 +81,7 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     # check
     x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
     w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, ExponentOfTwo)
-    @assert w1 != w0^(two_to_e2 - d)
+    @assert w1 == w0^(two_to_e2 - d)
 
     x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[4][idx], images[5][idx], images[6][idx]
     x_tau_K = images[7][idx]
@@ -95,6 +95,7 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     u, v = bi_dlog_odd_prime_power(Montgomery_coeff(a24), x_tau_K, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, 3, ExponentOfThree)
     u < 0 && (u += three_to_e3)
     v < 0 && (v += three_to_e3)
+    println("u = $(u % 3), v = $(v % 3)")
     if u % 3 != 0
         u_inv = invmod(u, BigInt(3)^ExponentOfThree)
         x_tau_K = ladder(u_inv, x_tau_K, a24)
