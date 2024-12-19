@@ -39,7 +39,6 @@ struct E0Data
     a24_0::Proj1{FqFieldElem}
     j0::FqFieldElem
     basis2e3e::BasisData
-    basis2e3ed::BasisData
     basis2e::BasisData
     basis3e::BasisData
     Matrices_2e::Vector{Matrix{BigInt}}

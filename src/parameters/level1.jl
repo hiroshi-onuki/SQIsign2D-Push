@@ -57,15 +57,6 @@ function make_E0_data()
     xPQ0 = Proj1(PQ0.X, PQ0.Z)
     basis2e3e = BasisData(xP0, xQ0, xPQ0)
 
-    T = mult(BigInt(1) << (ExponentOfTwo - 2), P2e, Proj1(A0))
-    P0d = add(P0, T, Proj1(A0))
-    Q0d = add(Q0, T, Proj1(A0))
-    PQ0d = add(PQ0, T, Proj1(A0))
-    xP0d = Proj1(P0d.X, P0d.Z)
-    xQ0d = Proj1(Q0d.X, Q0d.Z)
-    xPQ0d = Proj1(PQ0d.X, PQ0d.Z)
-    basis2e3ed = BasisData(xP0d, xQ0d, xPQ0d)
-
     xP2e = Proj1(P2e.X, P2e.Z)
     xQ2e = Proj1(Q2e.X, Q2e.Z)
     PQ2e = add(P2e, -Q2e, Proj1(A0))
@@ -112,7 +103,7 @@ function make_E0_data()
         end
     end
 
-    return Fp2, E0Data(A0, A0d, A0dd, a24_0, jInvariant_A(A0), basis2e3e, basis2e3ed, basis2e, basis3e, Matrices_2e, Matrices_3e, w, isomorphism_to_A0, dlog_data, tp_table)
+    return Fp2, E0Data(A0, A0d, A0dd, a24_0, jInvariant_A(A0), basis2e3e, basis2e, basis3e, Matrices_2e, Matrices_3e, w, isomorphism_to_A0, dlog_data, tp_table)
 end
 
 # Fp2 and values in Fp2

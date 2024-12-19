@@ -26,7 +26,6 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
     xP0, xQ0, xPQ0 = E0_data.basis2e3e.xP, E0_data.basis2e3e.xQ, E0_data.basis2e3e.xPQ
-    xP0d, xQ0d, xPQ0d = E0_data.basis2e3ed.xP, E0_data.basis2e3ed.xQ, E0_data.basis2e3ed.xPQ
     xP2e, xQ2e, xPQ2e = E0_data.basis2e.xP, E0_data.basis2e.xQ, E0_data.basis2e.xPQ
     xP3e, xQ3e, xPQ3e = E0_data.basis3e.xP, E0_data.basis3e.xQ, E0_data.basis3e.xPQ
 
