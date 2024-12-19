@@ -146,7 +146,9 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_com
     a24pub = A_to_a24(Apub)
     a24m, s0, sm, M0, Mm, xPm, xQm, xPQm, Mpub, Isec, Dsec = sk
 
+    cnt = 0
     while true
+        cnt += 1
         # commitment
         Acom, (Icom, xPcom, xQcom, xPQcom, xPcom_fix, xQcom_fix, xPQcom_fix), Mcom = commitment(global_data)
         a24com = A_to_a24(Acom)
@@ -335,7 +337,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_com
             sign[idx] = lex_order(Aaux, Acha) ? 0x00 : 0x01
         end
 
-        return sign
+        return sign, cnt
     end
 end
 

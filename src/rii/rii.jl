@@ -53,31 +53,14 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
 
     # points to be evaluated by the isogeny
     O = infinity_point(global_data.Fp2)
-    xT2 = xDBLe(xPd, a24d, ExponentOfTwo - 2)
     P0O = CouplePoint(xP0, O)
     Q0O = CouplePoint(xQ0, O)
     PQ0O = CouplePoint(xPQ0, O)
-    P0OT = CouplePoint(xP0d, xT2)
-    Q0OT = CouplePoint(xQ0d, xT2)
-    PQ0OT = CouplePoint(xPQ0d, xT2)
 
-    # points for test
-    P2d, Q2d, PQ2d = torsion_basis(Montgomery_coeff(a24d), ExponentOfTwo)
-    @assert is_infinity(xDBLe(xPd, a24d, ExponentOfTwo))
-    P2dd = x_add_sub(P2d, xT2, a24d)
-    test_point = CouplePoint(O, P2d)
-    test_point_T = CouplePoint(xDBLe(xP2e, a24_0, ExponentOfTwo - 2), P2dd)
-
-    eval_points = [P0O, Q0O, PQ0O, test_point]
-    eval_points_T = [P0OT, Q0OT, PQ0OT, test_point_T]
+    eval_points = [P0O, Q0O, PQ0O]
 
     # (2^e2, 2^e2)-isogeny
-    Es, images = product_isogeny_sqrt(a24_0, a24d, K1, K2, K12, eval_points, eval_points_T, ExponentOfTwo, StrategiesDim2[ExponentOfTwo])
-
-    x_tmp = images[4][1]
-    a24 = A_to_a24(Es[1])
-    @assert is_infinity(xDBLe(x_tmp, a24, ExponentOfTwo))
-    @assert !is_infinity(xDBLe(x_tmp, a24, ExponentOfTwo - 1))
+    Es, images = product_isogeny_sqrt(a24_0, a24d, K1, K2, K12, eval_points, ExponentOfTwo, StrategiesDim2[ExponentOfTwo])
 
     idx = 1
     a24 = A_to_a24(Es[idx])
