@@ -20,7 +20,7 @@ function RandIsogImages(d::BigInt, global_data::GlobalData, compute_odd_points::
 end
 
 # return Ed, (R, S) s.t. there exists a (d(2^e2 - d))-isogeny E0 -> Ed sending (P2e, Q2e) to (R, S)
-function ComposedRandIsog(d::BigInt, global_data::GlobalData)
+function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) where T <: RingElem
     two_to_e2 = BigInt(1) << ExponentOfTwo
     three_to_e3 = BigInt(3)^ExponentOfThree
     E0_data = global_data.E0_data
@@ -52,43 +52,36 @@ function ComposedRandIsog(d::BigInt, global_data::GlobalData)
 
     # points to be evaluated by the isogeny
     O = infinity_point(global_data.Fp2)
-    P0O = CouplePoint(xP0, O)
-    Q0O = CouplePoint(xQ0, O)
-    PQ0O = CouplePoint(xPQ0, O)
+    xP2e_d, xQ2e_d, xPQ2e_d = torsion_basis(a24d, ExponentOfTwo)
+    xP3e_d, xQ3e_d, xPQ3e_d = torsion_basis(a24d, 3, ExponentOfThree)
+    OP2e_d = CouplePoint(O, xP2e_d)
+    OQ2e_d = CouplePoint(O, xQ2e_d)
+    OPQ2e_d = CouplePoint(O, xPQ2e_d)
+    OP3e_d = CouplePoint(O, xP3e_d)
+    OQ3e_d = CouplePoint(O, xQ3e_d)
+    OPQ3e_d = CouplePoint(O, xPQ3e_d)
+    KO = CouplePoint(xK, O)
 
-    eval_points = [P0O, Q0O, PQ0O]
+    eval_points = [OP2e_d, OQ2e_d, OPQ2e_d, OP3e_d, OQ3e_d, OPQ3e_d, KO]
 
     # (2^e2, 2^e2)-isogeny
     Es, images = product_isogeny_sqrt(a24_0, a24d, K1, K2, K12, eval_points, ExponentOfTwo, StrategiesDim2[ExponentOfTwo])
 
     idx = 1
     a24 = A_to_a24(Es[idx])
-    x_tau_P0, x_tau_Q0, x_tau_PQ0 = images[1][idx], images[2][idx], images[3][idx]
-    x_tau_3eP2 = ladder(three_to_e3, x_tau_P0, a24)
-    x_tau_3eQ2 = ladder(three_to_e3, x_tau_Q0, a24)
-    x_tau_3ePQ2 = ladder(three_to_e3, x_tau_PQ0, a24)
-    @assert is_infinity(ladder(two_to_e2, x_tau_3eP2, a24))
-    @assert is_infinity(ladder(two_to_e2, x_tau_3eQ2, a24))
-    @assert is_infinity(ladder(two_to_e2, x_tau_3ePQ2, a24))
-    @assert !is_infinity(ladder(div(two_to_e2, 2), x_tau_3eP2, a24))
-    @assert !is_infinity(ladder(div(two_to_e2, 2), x_tau_3eQ2, a24))
-    @assert !is_infinity(ladder(div(two_to_e2, 2), x_tau_3ePQ2, a24))
+    x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2 = images[1][idx], images[2][idx], images[3][idx]
 
     w0 = global_data.E0_data.Weil_P2eQ2e
-    w1 = Weil_pairing_2power(affine(Es[idx]), x_tau_3eP2, x_tau_3eQ2, x_tau_3ePQ2, ExponentOfTwo)
-    exp = (d * three_to_e3^2) % two_to_e2
-    if w1 != w0^exp
+    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2, ExponentOfTwo)
+    if w1 != w0^(two_to_e2 - d)
         idx = 2
     end
     a24 = A_to_a24(Es[idx])
-    x_tau_P0, x_tau_Q0, x_tau_PQ0 = images[1][idx], images[2][idx], images[3][idx]
+    x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2 = images[1][idx], images[2][idx], images[3][idx]
 
     # check
-    x_tau_3eP2 = ladder(three_to_e3, x_tau_P0, a24)
-    x_tau_3eQ2 = ladder(three_to_e3, x_tau_Q0, a24)
-    x_tau_3ePQ2 = ladder(three_to_e3, x_tau_PQ0, a24)
-    w1 = Weil_pairing_2power(affine(Es[idx]), x_tau_3eP2, x_tau_3eQ2, x_tau_3ePQ2, ExponentOfTwo)
-    @assert w1 == w0^exp
+    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2, ExponentOfTwo)
+    @assert w1 != w0^(two_to_e2 - d)
 end
 
 # return the codomain of a random d-isogeny from E and the image of (P, Q),

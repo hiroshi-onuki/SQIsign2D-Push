@@ -692,7 +692,7 @@ end
 function complete_basis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, l::Int, e::Int) where T <: RingElem
     F = parent(a24.X)
     p = Integer(characteristic(F))
-    N = div((p + 1), l^e)
+    N = div((p + 1), BigInt(l)^e)
     A = a24_to_A(a24)
     i = gen(F)
     Q = Proj1(x)
@@ -701,7 +701,7 @@ function complete_basis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, l::Int, 
         if is_square(A.Z * x * (A.Z * (x^2 + 1) + A.X * x))
             Q = Proj1(x)
             Q = ladder(N, Q, a24)
-            Qd = ladder(l^(e-1), Q, a24)
+            Qd = ladder(BigInt(l)^(e-1), Q, a24)
             if !is_infinity(Qd) && is_basis(a24, Pd, Qd, l)
                 break
             end
@@ -745,21 +745,21 @@ end
 
 # Algorithm 3 in SQIsign documentation
 # return a fixed basis of E[l^e]
-function torsion_basis(A::T, l::Int, e::Int) where T <: RingElem
-    F = parent(A)
+function torsion_basis(a24::Proj1{T}, l::Int, e::Int) where T <: RingElem
+    F = parent(a24.X)
     p = Integer(characteristic(F))
-    N = div(p + 1, l^e)
-    a24 = A_to_a24(A)
+    N = div(p + 1, BigInt(l)^e)
+    A = a24_to_A(a24)
     i = gen(F)
     x = F(1)
     P = Proj1(x)
     Pd = Proj1(x)
     while true
         x += i
-        if is_square(x * ((x^2 + 1) + A * x))
+        if is_square(A.Z * x * (A.Z * (x^2 + 1) + A.X * x))
             P = Proj1(x)
             P = ladder(N, P, a24)
-            Pd = ladder(l^(e-1), P, a24)
+            Pd = ladder(BigInt(l)^(e-1), P, a24)
             if !is_infinity(Pd)
                 break
             end
