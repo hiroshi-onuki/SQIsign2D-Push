@@ -170,6 +170,23 @@ function gluing_image(P::ThetaPtLv2{T}, PT::ThetaPtLv2{T}, a_inv::T, b_inv::T, z
     return ThetaPtLv2(Hadamard(xyzt))
 end
 
+# the iamge of P under a gluing (2, 2)-isogeny in a special case that P = (*, 0) or (0, *)
+function gluing_image_special(P::ThetaPtLv2{T}, a_inv::T, b_inv::T, zero_idx::Integer) where T <: RingElem
+    F = parent(P.a)
+    AxByCzDt = Hadamard(square(P))
+
+    y = AxByCzDt[(1 ⊻ zero_idx) + 1] * a_inv
+    z = AxByCzDt[(2 ⊻ zero_idx) + 1] * b_inv
+    t = AxByCzDt[(3 ⊻ zero_idx) + 1]
+
+    xyzt = zeros(F, 4)
+    xyzt[(1 ⊻ zero_idx) + 1] = y
+    xyzt[(2 ⊻ zero_idx) + 1] = z
+    xyzt[(3 ⊻ zero_idx) + 1] = t
+
+    return ThetaPtLv2(Hadamard(xyzt))
+end
+
 # the gluing (2, 2)-isogeny with kernel <(P1, P2), (Q1, Q2)>
 function gluing_isogeny(a24_1::Proj1{T}, a24_2::Proj1{T},
     T1_8::CouplePoint{T}, T2_8::CouplePoint{T}, P1Q1P2Q2::CouplePoint{T},
@@ -256,6 +273,12 @@ function gluing_isogeny(a24_1::Proj1{T}, a24_2::Proj1{T},
         
         Pimage = gluing_image(Ptheta, PTtheta, a_inv, b_inv, zero_idx)
         images[i] = Pimage
+
+        # check the validity of the gluing images
+        if i < length(image_points) - 1
+            Pimaged = gluing_image_special(Ptheta, a_inv, b_inv, zero_idx)
+            @assert Pimaged == Pimage
+        end
     end
 
     return codomain, images
