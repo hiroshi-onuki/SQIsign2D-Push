@@ -69,19 +69,43 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
 
     idx = 1
     a24 = A_to_a24(Es[idx])
-    x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2 = images[1][idx], images[2][idx], images[3][idx]
+    x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
 
     w0 = global_data.E0_data.Weil_P2eQ2e
-    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2, ExponentOfTwo)
+    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, ExponentOfTwo)
     if w1 != w0^(two_to_e2 - d)
         idx = 2
     end
     a24 = A_to_a24(Es[idx])
-    x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2 = images[1][idx], images[2][idx], images[3][idx]
 
     # check
-    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e, x_hatrho_Q2e, x_hatrho_PQ2, ExponentOfTwo)
+    x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
+    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, ExponentOfTwo)
     @assert w1 != w0^(two_to_e2 - d)
+
+    x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[4][idx], images[5][idx], images[6][idx]
+    x_tau_K = images[7][idx]
+    @assert is_infinity(ladder(three_to_e3, x_hatrho_P3e_d, a24))
+    @assert is_infinity(ladder(three_to_e3, x_hatrho_Q3e_d, a24))
+    @assert is_infinity(ladder(three_to_e3, x_hatrho_PQ3e_d, a24))
+    @assert is_infinity(ladder(three_to_e3, x_tau_K, a24))
+    @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_P3e_d, a24))
+    @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_Q3e_d, a24))
+    @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_PQ3e_d, a24))
+    u, v = bi_dlog_odd_prime_power(Montgomery_coeff(a24), x_tau_K, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, 3, ExponentOfThree)
+    u < 0 && (u += three_to_e3)
+    v < 0 && (v += three_to_e3)
+    if u % 3 != 0
+        u_inv = invmod(u, BigInt(3)^ExponentOfThree)
+        x_tau_K = ladder(u_inv, x_tau_K, a24)
+        @assert x_tau_K == ladder3pt(v*u_inv, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, a24)
+    elseif v % 3 != 0
+        v_inv = invmod(v, BigInt(3)^ExponentOfThree)
+        x_tau_K = ladder(v_inv, x_tau_K, a24)
+        @assert x_tau_K == ladder3pt(u*v_inv, x_hatrho_Q3e_d, x_hatrho_P3e_d, x_hatrho_PQ3e_d, a24)
+    else
+        @assert false
+    end
 end
 
 # return the codomain of a random d-isogeny from E and the image of (P, Q),
