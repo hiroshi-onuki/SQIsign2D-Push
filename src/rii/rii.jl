@@ -19,7 +19,9 @@ function RandIsogImages(d::BigInt, global_data::GlobalData, compute_odd_points::
     end
 end
 
-# return Ed, (R, S) s.t. there exists a (d(2^e2 - d))-isogeny E0 -> Ed sending (P2e, Q2e) to (R, S)
+# input: odd integer d s.t. 2^e2 - d is not divisible by 3, a point xK in E0 of order 3^e3
+# output: the codomain of a random (d(2^e2 - d))-isogeny f, [c]f(xK), log_3(order(f(xK)), 
+#    and [d^{-1}](f(P2e), f(Q2e)), where c in some integer not divisible by 3
 function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) where T <: RingElem
     two_to_e2 = BigInt(1) << ExponentOfTwo
     three_to_e3 = BigInt(3)^ExponentOfThree
@@ -95,38 +97,41 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     u, v = bi_dlog_odd_prime_power(Montgomery_coeff(a24), x_tau_K, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, 3, ExponentOfThree)
     u < 0 && (u += three_to_e3)
     v < 0 && (v += three_to_e3)
-    if false #u % 3 != 0
-        u_inv = invmod(u, BigInt(3)^ExponentOfThree)
+    e_u = valuation(u, 3)
+    e_v = valuation(v, 3)
+    if e_u < e_v
+        u = div(u, BigInt(3)^e_u)
+        v = div(v, BigInt(3)^e_u)
+        xP3e_d = ladder(BigInt(3)^e_u, xP3e_d, a24)
+        xQ3e_d = ladder(BigInt(3)^e_u, xQ3e_d, a24)
+        xPQ3e_d = ladder(BigInt(3)^e_u, xPQ3e_d, a24)
+        u_inv = invmod(u, BigInt(3)^(ExponentOfThree - e_u))
+        xKd = ladder3pt(v * u_inv, xP3e_d, xQ3e_d, xPQ3e_d, a24d)
+
+        # check
+        x_hatrho_P3e_d = ladder(BigInt(3)^e_u, x_hatrho_P3e_d, a24)
+        x_hatrho_Q3e_d = ladder(BigInt(3)^e_u, x_hatrho_Q3e_d, a24)
+        x_hatrho_PQ3e_d = ladder(BigInt(3)^e_u, x_hatrho_PQ3e_d, a24)
         x_tau_K = ladder(u_inv, x_tau_K, a24)
-        @assert x_tau_K == ladder3pt(v*u_inv, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, a24)
-    elseif false #v % 3 != 0
-        v_inv = invmod(v, BigInt(3)^ExponentOfThree)
-        x_tau_K = ladder(v_inv, x_tau_K, a24)
-        @assert x_tau_K == ladder3pt(u*v_inv, x_hatrho_Q3e_d, x_hatrho_P3e_d, x_hatrho_PQ3e_d, a24)
+        @assert x_tau_K == ladder3pt(v * u_inv, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, a24)
     else
-        e_u = valuation(u, 3)
-        e_v = valuation(v, 3)
-        println("e_u = $e_u, e_v = $e_v")
-        if e_u < e_v
-            u = div(u, BigInt(3)^e_u)
-            v = div(v, BigInt(3)^e_u)
-            x_hatrho_P3e_d = ladder(BigInt(3)^e_u, x_hatrho_P3e_d, a24)
-            x_hatrho_Q3e_d = ladder(BigInt(3)^e_u, x_hatrho_Q3e_d, a24)
-            x_hatrho_PQ3e_d = ladder(BigInt(3)^e_u, x_hatrho_PQ3e_d, a24)
-            u_inv = invmod(u, BigInt(3)^(ExponentOfThree - e_u))
-            x_tau_K = ladder(u_inv, x_tau_K, a24)
-            @assert x_tau_K == ladder3pt(v * u_inv, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, a24)
-        else
-            u = div(u, BigInt(3)^e_v)
-            v = div(v, BigInt(3)^e_v)
-            x_hatrho_P3e_d = ladder(BigInt(3)^e_v, x_hatrho_P3e_d, a24)
-            x_hatrho_Q3e_d = ladder(BigInt(3)^e_v, x_hatrho_Q3e_d, a24)
-            x_hatrho_PQ3e_d = ladder(BigInt(3)^e_v, x_hatrho_PQ3e_d, a24)
-            v_inv = invmod(v, BigInt(3)^(ExponentOfThree - e_v))
-            x_tau_K = ladder(v_inv, x_tau_K, a24)
-            @assert x_tau_K == ladder3pt(u * v_inv, x_hatrho_Q3e_d, x_hatrho_P3e_d, x_hatrho_PQ3e_d, a24)
-        end
+        u = div(u, BigInt(3)^e_v)
+        v = div(v, BigInt(3)^e_v)
+        xP3e_d = ladder(BigInt(3)^e_v, xP3e_d, a24)
+        xQ3e_d = ladder(BigInt(3)^e_v, xQ3e_d, a24)
+        xPQ3e_d = ladder(BigInt(3)^e_v, xPQ3e_d, a24)
+        v_inv = invmod(v, BigInt(3)^(ExponentOfThree - e_v))
+        xKd = ladder3pt(u * v_inv, xQ3e_d, xP3e_d, xPQ3e_d, a24d)
+
+        # check
+        x_hatrho_P3e_d = ladder(BigInt(3)^e_v, x_hatrho_P3e_d, a24)
+        x_hatrho_Q3e_d = ladder(BigInt(3)^e_v, x_hatrho_Q3e_d, a24)
+        x_hatrho_PQ3e_d = ladder(BigInt(3)^e_v, x_hatrho_PQ3e_d, a24)
+        x_tau_K = ladder(v_inv, x_tau_K, a24)
+        @assert x_tau_K == ladder3pt(u * v_inv, x_hatrho_Q3e_d, x_hatrho_P3e_d, x_hatrho_PQ3e_d, a24)
     end
+
+    return a24d, xKd, ExponentOfThree - min(e_u, e_v), xPd, xQd, xPQd
 end
 
 # return the codomain of a random d-isogeny from E and the image of (P, Q),
