@@ -95,17 +95,37 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     u, v = bi_dlog_odd_prime_power(Montgomery_coeff(a24), x_tau_K, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, 3, ExponentOfThree)
     u < 0 && (u += three_to_e3)
     v < 0 && (v += three_to_e3)
-    println("u = $(u % 3), v = $(v % 3)")
-    if u % 3 != 0
+    if false #u % 3 != 0
         u_inv = invmod(u, BigInt(3)^ExponentOfThree)
         x_tau_K = ladder(u_inv, x_tau_K, a24)
         @assert x_tau_K == ladder3pt(v*u_inv, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, a24)
-    elseif v % 3 != 0
+    elseif false #v % 3 != 0
         v_inv = invmod(v, BigInt(3)^ExponentOfThree)
         x_tau_K = ladder(v_inv, x_tau_K, a24)
         @assert x_tau_K == ladder3pt(u*v_inv, x_hatrho_Q3e_d, x_hatrho_P3e_d, x_hatrho_PQ3e_d, a24)
     else
-        @assert false
+        e_u = valuation(u, 3)
+        e_v = valuation(v, 3)
+        println("e_u = $e_u, e_v = $e_v")
+        if e_u < e_v
+            u = div(u, BigInt(3)^e_u)
+            v = div(v, BigInt(3)^e_u)
+            x_hatrho_P3e_d = ladder(BigInt(3)^e_u, x_hatrho_P3e_d, a24)
+            x_hatrho_Q3e_d = ladder(BigInt(3)^e_u, x_hatrho_Q3e_d, a24)
+            x_hatrho_PQ3e_d = ladder(BigInt(3)^e_u, x_hatrho_PQ3e_d, a24)
+            u_inv = invmod(u, BigInt(3)^(ExponentOfThree - e_u))
+            x_tau_K = ladder(u_inv, x_tau_K, a24)
+            @assert x_tau_K == ladder3pt(v * u_inv, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, a24)
+        else
+            u = div(u, BigInt(3)^e_v)
+            v = div(v, BigInt(3)^e_v)
+            x_hatrho_P3e_d = ladder(BigInt(3)^e_v, x_hatrho_P3e_d, a24)
+            x_hatrho_Q3e_d = ladder(BigInt(3)^e_v, x_hatrho_Q3e_d, a24)
+            x_hatrho_PQ3e_d = ladder(BigInt(3)^e_v, x_hatrho_PQ3e_d, a24)
+            v_inv = invmod(v, BigInt(3)^(ExponentOfThree - e_v))
+            x_tau_K = ladder(v_inv, x_tau_K, a24)
+            @assert x_tau_K == ladder3pt(u * v_inv, x_hatrho_Q3e_d, x_hatrho_P3e_d, x_hatrho_PQ3e_d, a24)
+        end
     end
 end
 
