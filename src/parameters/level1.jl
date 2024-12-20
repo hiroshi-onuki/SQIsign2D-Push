@@ -15,6 +15,7 @@ include("../ideal_to_isogeny/ideal_to_isogeny.jl")
 include("../rii/quat_action.jl")
 include("../rii/d2isogeny.jl")
 include("../rii/rii.jl")
+include("../double_path/double_path.jl")
 include("../utilities/for_compression.jl")
 include("../sqisign2d_push/sqisign2d_push.jl")
 

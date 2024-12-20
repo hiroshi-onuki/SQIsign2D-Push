@@ -768,7 +768,7 @@ function torsion_basis(a24::Proj1{T}, l::Int, e::Int) where T <: RingElem
     return complete_basis(a24, P, Pd, x, l, e)
 end
 
-# isomorphism from Montgomery curnve with a24 to Montgomery curve mapping P4 to (1, *)
+# isomorphism from Montgomery curve with a24 to Montgomery curve mapping P4 to (1, *)
 function isomorphism_Montgomery(a24::Proj1{T}, P4::Proj1{T}, Ps::Vector{Proj1{T}}) where T <: RingElem
     P2 = xDBL(P4, a24)
     A = a24_to_A(a24)
