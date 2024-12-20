@@ -3,7 +3,7 @@ using SQIsign2D_Push
 function check(param::Module, num::Int)
     global_data = param.make_precomputed_values()
 
-    two_to_e2 = BigInt(2)^param.ExponentOfTwo
+    two_to_e2 = param.two_to_e2
     for _ in 1:num
         q = 0
         while q % 3 == 0 || q % 2 == 0

@@ -23,8 +23,6 @@ end
 # output: the codomain of a random (d(2^e2 - d))-isogeny f, [c]f(xK), log_3(order(f(xK)), 
 #    and [d^{-1}](f(P2e), f(Q2e)), where c in some integer not divisible by 3
 function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) where T <: RingElem
-    two_to_e2 = BigInt(1) << ExponentOfTwo
-    three_to_e3 = BigInt(3)^ExponentOfThree
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
     xP0, xQ0, xPQ0 = E0_data.basis2e3e.xP, E0_data.basis2e3e.xQ, E0_data.basis2e3e.xPQ
@@ -33,18 +31,18 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
 
     # alpha in End(E0) s.t. n(alpha) = d*(2^e2 - d)*3^e3
     # we decompose alpha = hat(phi)*hat(rho)*tau, where deg(phi) = 3^e3, deg(rho) = 2^e2 - d, deg(tau) = d
-    alpha = Quaternion_0
-    while gcd(alpha) % 3 == 0
-        alpha, _ = FullRepresentInteger(d*(two_to_e2 - d)*three_to_e3)
-    end
-
+    alpha, found = FullRepresentInteger(d*(two_to_e2 - d)*three_to_e3)
+    @assert found
+    e = valuation(gcd(alpha), 3)
+    
     # (3^e3)-isogeny phi: E0 -> Ed
-    K = kernel_generator(xP3e, xQ3e, xPQ3e, a24_0, involution(alpha), 3, ExponentOfThree, E0_data.Matrices_3e)
-    a24d, images = three_e_iso(a24_0, K, ExponentOfThree, [xP2e, xQ2e, xPQ2e], StrategiesDim1Three[ExponentOfThree])
+    K = kernel_generator(xP3e, xQ3e, xPQ3e, a24_0, involution(div(alpha, BigInt(3)^e)), 3, ExponentOfThree, E0_data.Matrices_3e)
+    K = ladder(BigInt(3)^(2*e), K, a24_0)
+    a24d, images = three_e_iso(a24_0, K, ExponentOfThree - 2*e, [xP2e, xQ2e, xPQ2e], StrategiesDim1Three[ExponentOfThree - 2*e])
 
     # (Pd, Qd) = [d^{-1}]hat(rho)*tau(P2, Q2) = [(3^e3 * d)^{-1}]phi*alpha(P2e, Q2e)
     xPd, xQd, xPQd = images
-    c = invmod(d*three_to_e3, two_to_e2)
+    c = invmod(d*div(three_to_e3, BigInt(3)^e), two_to_e2)
     xPd, xQd, xPQd = action_on_torsion_basis(alpha, a24d, xPd, xQd, xPQd, E0_data, c)
 
     # the kernel of the (2^e2, 2^e2)-isogeny is <(P2e, Pd), (Q2e, Qd)>
@@ -134,67 +132,13 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     return a24d, xKd, ExponentOfThree - min(e_u, e_v), xPd, xQd, xPQd
 end
 
-# return the codomain of a random d-isogeny from E and the image of (P, Q),
-# where there exist 2^b-isogenies E0 -(tau_1)-> Em -tau_2-> E
-# s.t. ker(tau_1) = <P0 + s0 Q0> and ker(tau_2) = <Pm + sm Qm>,
-# and P, Q are in E[2^(a+b)] satisfying hat(tau_2) * hat(tau_1)(P, Q) = (P0, Q0) Mm M0
-function PushRandIsog(d::BigInt, a24m::Proj1{T}, s0::BigInt, sm::BigInt, xPm::Proj1{T}, xQm::Proj1{T}, xPQm::Proj1{T}, 
-        M0::Matrix{BigInt}, Mm::Matrix{BigInt}, global_data::GlobalData) where T <: RingElem
-    two_to_ab = BigInt(1) << ExponentSum
+function PushRandIsog(d::BigInt, a24m::Proj1{T}, xP2m::Proj1{T}, xQ2m::Proj1{T}, xPQ2m::Proj1{T},
+        xK1::Proj1{T}, xK2::Proj1{T},
+        global_data::GlobalData) where T <: RingElem
 
-    # d*(D1 - d)-isogeny: E0 -> F0d
-    a24F0d, xR0d, xS0d, xRS0d = ComposedRandIsog(d, global_data)
+    a24d, xKd, e, xP2d, xQ2d, xPQ2d = ComposedRandIsog(d, xK1, global_data)
 
-    # D2-isogeny: F0d -> Fmd
-    xR_D1 = xDBLe(xR0d, a24F0d, ExponentForDim2)
-    xS_D1 = xDBLe(xS0d, a24F0d, ExponentForDim2)
-    xRS_D1 = xDBLe(xRS0d, a24F0d, ExponentForDim2)
-    K = ladder3pt(s0, xR_D1, xS_D1, xRS_D1, a24F0d)
-    a24Fmd, (xRd, xSd, xRSd) = two_e_iso(a24F0d, K, ExponentForDim1, [xR0d, xS0d, xRS0d], StrategiesDim1[ExponentForDim1])
-    xRmd, xSmd, xRSmd = action_of_matrix(M0, a24Fmd, xRd, xSd, xRSd, ExponentSum)
-
-    # (D1, D1)-isogeny: Em times Fmd -> Fm times _
-    # kernel
-    xP1 = ladder(d << ExponentForDim1, xPm, a24m)
-    xQ1 = ladder(d << ExponentForDim1, xQm, a24m)
-    xPQ1 = ladder(d << ExponentForDim1, xPQm, a24m)
-    P1P2 = CouplePoint(xP1, xRmd)
-    Q1Q2 = CouplePoint(xQ1, xSmd)
-    PQ1PQ2 = CouplePoint(xPQ1, xRSmd)
-    # points evaluated by the isogeny
-    O = infinity_point(global_data.Fp2)
-    T1 = xDBLe(xP1, a24m, ExponentForDim2 - 2)
-    T2 = xDBLe(xRmd, a24Fmd, ExponentForDim2 - 2)
-    PmO = CouplePoint(xPm, O)
-    QmO = CouplePoint(xQm, O)
-    PQmO = CouplePoint(xPQm, O)
-    xPmT1 = ladder(1 + d << (ExponentSum - 2), xPm, a24m)
-    xQmT1 = ladder3pt(d << (ExponentSum - 2), xQm, xPm, xPQm, a24m)
-    xPQmT1 = ladder3pt(two_to_ab - 1 - (d << (ExponentSum - 2) % two_to_ab), xQm, xPm, xPQm, a24m)
-    PmT1T2 = CouplePoint(xPmT1, T2)
-    QmT1T2 = CouplePoint(xQmT1, T2)
-    PQmT1T2 = CouplePoint(xPQmT1, T2)
-    eval_points = [PmO, QmO, PQmO]
-    eval_points_T = [PmT1T2, QmT1T2, PQmT1T2]
-    # isogeny
-    Es, images = product_isogeny_sqrt(a24m, a24Fmd, P1P2, Q1Q2, PQ1PQ2, eval_points, eval_points_T, ExponentForDim2, StrategiesDim2[ExponentForDim2])
-    idx = 1
-    xRm, xSm, xRSm = images[1][idx], images[2][idx], images[3][idx]
-    w0 = Weil_pairing_2power(Montgomery_coeff(a24m), xPm, xQm, xPQm, ExponentSum)
-    w1 = Weil_pairing_2power(Montgomery_coeff(A_to_a24(Es[idx])), xRm, xSm, xRSm, ExponentSum)
-    if w1 != w0^d
-        idx = 2
-    end
-    a24Fm = A_to_a24(Es[idx])
-    xRm, xSm, xRSm = images[1][idx], images[2][idx], images[3][idx]
-
-    # D2-isogeny: Fm -> F
-    Rm_c = xDBLe(xRm, a24Fm, ExponentForDim2)
-    Sm_c = xDBLe(xSm, a24Fm, ExponentForDim2)
-    RSm_c = xDBLe(xRSm, a24Fm, ExponentForDim2)
-    K = ladder3pt(sm, Rm_c, Sm_c, RSm_c, a24Fm)
-    a24F, images = two_e_iso(a24Fm, K, ExponentForDim1, [xRm, xSm, xRSm], StrategiesDim1[ExponentForDim1])
-    xR, xS, xRS = action_of_matrix(Mm, a24F, images[1], images[2], images[3], ExponentSum)
+    a24md, images = three_e_iso(a24d, xKd, e, [xP2d, xQ2d, xPQ2d], StrategiesDim1Three[e])
  
     return Montgomery_normalize(a24F, [xR, xS, xRS])
 end

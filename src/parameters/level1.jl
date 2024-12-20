@@ -27,6 +27,14 @@ const StrategiesDim1Two = Dict(
 
 const StrategiesDim1Three = Dict(
     ExponentOfThree => compute_strategy(ExponentOfThree - 1, 1, 1),
+    ExponentOfThree - 1 => compute_strategy(ExponentOfThree - 2, 1, 1),
+    ExponentOfThree - 2 => compute_strategy(ExponentOfThree - 3, 1, 1),
+    ExponentOfThree - 3 => compute_strategy(ExponentOfThree - 4, 1, 1),
+    ExponentOfThree - 4 => compute_strategy(ExponentOfThree - 5, 1, 1),
+    ExponentOfThree - 5 => compute_strategy(ExponentOfThree - 6, 1, 1),
+    ExponentOfThree - 6 => compute_strategy(ExponentOfThree - 7, 1, 1),
+    ExponentOfThree - 7 => compute_strategy(ExponentOfThree - 8, 1, 1),
+    ExponentOfThree - 8 => compute_strategy(ExponentOfThree - 9, 1, 1),
 )
 
 function make_E0_data()
