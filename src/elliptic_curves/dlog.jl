@@ -288,22 +288,22 @@ function bi_dlog_odd_prime(A::T, P::Point{T}, R::Point{T}, S::Point{T}, l::Int) 
     @assert false "bi_dlog_odd_prime: no solution"
 end
 
-function bi_dlog_odd_prime_power(A::T, P::Point{T}, R::Point{T}, S::Point{T}, l::Int, e::Int) where T <: RingElem
+function ec_bi_dlog_odd_prime_power(A::T, P::Point{T}, R::Point{T}, S::Point{T}, l::Int, e::Int) where T <: RingElem
     e == 1 && return bi_dlog_odd_prime(A, P, R, S, l)
     f = div(e, 2)
     Pd = mult(BigInt(l)^(e - f), P, Proj1(A))
     Rd = mult(BigInt(l)^(e - f), R, Proj1(A))
     Sd = mult(BigInt(l)^(e - f), S, Proj1(A))
-    a, b = bi_dlog_odd_prime_power(A, Pd, Rd, Sd, l, f)
+    a, b = ec_bi_dlog_odd_prime_power(A, Pd, Rd, Sd, l, f)
     aRbS = add(mult(a, R, Proj1(A)), mult(b, S, Proj1(A)), Proj1(A))
     P = add(P, -aRbS, Proj1(A))
     R = mult(BigInt(l)^f, R, Proj1(A))
     S = mult(BigInt(l)^f, S, Proj1(A))
-    c, d = bi_dlog_odd_prime_power(A, P, R, S, l, e - f)
+    c, d = ec_bi_dlog_odd_prime_power(A, P, R, S, l, e - f)
     return a + c * BigInt(l)^f, b + d * BigInt(l)^f
 end
 
-function bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, xR::Proj1{T}, xS::Proj1{T}, xRS::Proj1{T}, l::Int, e::Int) where T <: RingElem
+function ec_bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, xR::Proj1{T}, xS::Proj1{T}, xRS::Proj1{T}, l::Int, e::Int) where T <: RingElem
     P = Point(A, xP)
     Q = Point(A, xQ)
     PQ = add(P, -Q, Proj1(A))
@@ -316,12 +316,12 @@ function bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}
     if !(xRS == Proj1(RS.X, RS.Z))
         S = -S
     end
-    a, b = bi_dlog_odd_prime_power(A, P, R, S, l, e)
-    c, d = bi_dlog_odd_prime_power(A, Q, R, S, l, e)
+    a, b = ec_bi_dlog_odd_prime_power(A, P, R, S, l, e)
+    c, d = ec_bi_dlog_odd_prime_power(A, Q, R, S, l, e)
     return a, b, c, d
 end
 
-function bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xR::Proj1{T}, xS::Proj1{T}, xRS::Proj1{T}, l::Int, e::Int) where T <: RingElem
+function ec_bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xR::Proj1{T}, xS::Proj1{T}, xRS::Proj1{T}, l::Int, e::Int) where T <: RingElem
     P = Point(A, xP)
     R = Point(A, xR)
     S = Point(A, xS)
@@ -329,6 +329,6 @@ function bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xR::Proj1{T}, xS::Proj1{T},
     if !(xRS == Proj1(RS.X, RS.Z))
         S = -S
     end
-    a, b = bi_dlog_odd_prime_power(A, P, R, S, l, e)
+    a, b = ec_bi_dlog_odd_prime_power(A, P, R, S, l, e)
     return a, b
 end

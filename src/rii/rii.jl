@@ -92,7 +92,7 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_P3e_d, a24))
     @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_Q3e_d, a24))
     @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_PQ3e_d, a24))
-    u, v = bi_dlog_odd_prime_power(Montgomery_coeff(a24), x_tau_K, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, 3, ExponentOfThree)
+    u, v = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24), x_tau_K, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, 3, ExponentOfThree)
     u < 0 && (u += three_to_e3)
     v < 0 && (v += three_to_e3)
     e_u = valuation(u, 3)

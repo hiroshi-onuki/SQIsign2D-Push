@@ -11,136 +11,37 @@ function random_secret_prime()
 end
 
 function key_gen(global_data::GlobalData)
-    two_to_ab = BigInt(1) << ExponentSum
-    two_to_chall = BigInt(1) << SQISIGN_challenge_length
-    a24_0 = global_data.E0_data.a24_0
-    xP0, xQ0, xPQ0 = global_data.E0_data.xP2e, global_data.E0_data.xQ2e, global_data.E0_data.xPQ2e
-    xP0 = xDBLe(xP0, a24_0, ExponentFull - ExponentSum)
-    xQ0 = xDBLe(xQ0, a24_0, ExponentFull - ExponentSum)
-    xPQ0 = xDBLe(xPQ0, a24_0, ExponentFull - ExponentSum)
-    xP0c = xDBLe(xP0, a24_0, ExponentSum - ExponentForDim1)
-    xQ0c = xDBLe(xQ0, a24_0, ExponentSum - ExponentForDim1)
-    xPQ0c = xDBLe(xPQ0, a24_0, ExponentSum - ExponentForDim1)
+    a24pk, xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk, J3, J2 = FastDoublePath(true, global_data)
+    Apk = Montgomery_coeff(a24pk)
 
-    s0, s1 = rand(1:two_to_chall), rand(1:two_to_chall)
+    xP3pk_fix, xQ3pk_fix, xPQ3pk_fix = torsion_basis(a24pk, 3, ExponentOfThree)
 
-    # the first 2^c-isogeny
-    K0 = ladder3pt(s0, xP0c, xQ0c, xPQ0c, a24_0)
-    a24m, (xP0m, xQ0m, xPQ0m) = two_e_iso(a24_0, K0, ExponentForDim1, [xP0, xQ0, xPQ0], StrategiesDim1[ExponentForDim1])
-    a24m, (xP0m, xQ0m, xPQ0m) = Montgomery_normalize(a24m, [xP0m, xQ0m, xPQ0m])
-
-    # solving the DLog problem
-    xQm, xPm, xPQm = complete_basis(a24m, xQ0m, xDBLe(xQ0m, a24m, ExponentSum-1), global_data.Fp2(1), ExponentSum)
-    if s0 % 2 == 0
-        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPQ0m, xQ0m, xP0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
-        n1 = -n1 + n3
-        n2 = -n2 + n4
-    else
-        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xP0m, xQ0m, xPQ0m, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
-    end
-
-    # compute the ideal corresponding to the composition of the two isogenies
-    a, b, c, d = global_data.E0_data.Matrix_2ed2_inv * [-n2 + n1*s1, 0, -n4 + n3*s1, 0]
-    alpha = QOrderElem(a, b, c, d)
-    I = LeftIdeal(alpha, two_to_chall << ExponentForDim1)
-
-    # ideal to isogeny
-    a24 = a24_0
-    xP, xQ, xPQ = global_data.E0_data.xP2e, global_data.E0_data.xQ2e, global_data.E0_data.xPQ2e
-    M = BigInt[1 0; 0 1]
-    D = 1
-    e = 2 * ExponentForDim1
-    while e > 0
-        ed = min(e, ExponentForId2IsoDim1)
-        is_normalized = e <= ExponentForId2IsoDim1
-        n_I_d = D * BigInt(2)^ed
-        I_d = larger_ideal(I, n_I_d)
-        a24, xP, xQ, xPQ, M, beta, D = short_ideal_to_isogeny(I_d, a24, xP, xQ, xPQ, M, D, ed, global_data, is_normalized, Quaternion_0, 0, 0)
-        I = ideal_transform(I, beta, n_I_d)
-        e -= ed
-    end
-    xP = xDBLe(xP, a24, ExponentFull - ExponentSum)
-    xQ = xDBLe(xQ, a24, ExponentFull - ExponentSum)
-    xPQ = xDBLe(xPQ, a24, ExponentFull - ExponentSum)
-    xP, xQ, xPQ = action_of_matrix(M, a24, xP, xQ, xPQ, ExponentSum)
-
-    # the dual isogeny of the first 2^c-isogeny
-    K = xDBLe(xQm, a24m, ExponentSum - ExponentForDim1)
-    a24_0d, (xP0d, xQ0d, xPQ0d) = two_e_iso(a24m, K, ExponentForDim1, [xPm, xQm, xPQm], StrategiesDim1[ExponentForDim1])
-    xP0d, xQ0d, xPQ0d = global_data.E0_data.isomorphism_to_A0(a24_to_A(a24_0d), [xP0d, xQ0d, xPQ0d])
-    if xQ0d != xDBLe(xQ0, a24_0, ExponentForDim1)
-        # adjust the action by i
-        xP0d = -xP0d
-        xQ0d = -xQ0d
-        xPQ0d = -xPQ0d
-    end
-    n1, n2, n3, n4 = ec_bi_dlog(global_data.E0_data.A0, xP0d, xPQ0d, xQ0d, xP0, xQ0, xPQ0, global_data.E0_data.dlog_data[ExponentSum])
-    n3 = -n3 + n1
-    n4 = -n4 + n2
-    M0 = [n1 n3; n2 n4] .% two_to_ab
-
-    # the second 2^c-isogeny
-    xPm_c = xDBLe(xPm, a24m, ExponentSum - ExponentForDim1)
-    xQm_c = xDBLe(xQm, a24m, ExponentSum - ExponentForDim1)
-    xPQm_c = xDBLe(xPQm, a24m, ExponentSum - ExponentForDim1)
-    K1 = ladder3pt(s1, xPm_c, xQm_c, xPQm_c, a24m)
-    a24pub, image = two_e_iso(a24m, K1, ExponentForDim1, [xQm], StrategiesDim1[ExponentForDim1])
-    xQm_p = image[1]
-    a24pub, image = Montgomery_normalize(a24pub, [xQm_p])
-    xQm_p = image[1]
-    @assert a24 == a24pub
-    K1dual = xDBLe(xQm_p, a24pub, ExponentSum - ExponentForDim1)
-    a24md, (xPmd, xQmd, xPQmd) = two_e_iso(a24pub, K1dual, ExponentForDim1, [xP, xQ, xPQ], StrategiesDim1[ExponentForDim1])
-    _, (xPmd, xQmd, xPQmd) = Montgomery_normalize(a24md, [xPmd, xQmd, xPQmd])
-    if is_infinity(xDBLe(xPmd, a24m, ExponentSum-1))
-        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPQmd, xQmd, xPmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
-        n1 = -n1 + n3
-        n2 = -n2 + n4
-    elseif is_infinity(xDBLe(xQmd, a24m, ExponentSum-1))
-        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPmd, xPQmd, xQmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
-        n3 = -n3 + n1
-        n4 = -n4 + n2
-    else
-        n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24m), xPmd, xQmd, xPQmd, xPm, xQm, xPQm, global_data.E0_data.dlog_data[ExponentSum])
-    end
-    M1 = [n1 n3; n2 n4] .% two_to_ab
-
-    return Montgomery_coeff(a24), (a24m, s0, s1, M0, M1, xPm, xQm, xPQm, invmod_2x2(M, two_to_ab), I, D)
+    n1, n2, n3, n4 = ec_bi_dlog_odd_power(Apk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, xP3pk, xQ3pk, xPQ3pk, 3, ExponentOfThree)
+    M = [n1 n3; n2 n4]
+ 
+    return Apk, (xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M, J3, J2)
 end
 
 function commitment(global_data::GlobalData)
-    a24, xP, xQ, xPQ, I_sec = RandIsogImages(SQISIGN2D_commitment_degree, global_data, false)
-    a24, (xP, xQ, xPQ) = Montgomery_normalize(a24, [xP, xQ, xPQ])
-    A = Montgomery_coeff(a24)
-    xPc, xQc, xPQc = torsion_basis(A, SQISIGN_challenge_length)
-    xPd = xDBLe(xP, a24, ExponentSum - SQISIGN_challenge_length)
-    xQd = xDBLe(xQ, a24, ExponentSum - SQISIGN_challenge_length)
-    xPQd = xDBLe(xPQ, a24, ExponentSum - SQISIGN_challenge_length)
-    n1, n2, n3, n4 = ec_bi_dlog(A, xPc, xQc, xPQc, xPd, xQd, xPQd, global_data.E0_data.dlog_data[SQISIGN_challenge_length])
-    M = [n1 n3; n2 n4]
-    return A, (I_sec, xP, xQ, xPQ, xPc, xQc, xPQc), M
+    return FastDoublePath(false, global_data)
 end
 
 function challenge(A::FqFieldElem, m::String)
-    if SQISIGN_challenge_length <= 256
+    if Is256Hash
         h = sha3_256(string(A) * m)
     else
         h = sha3_512(string(A) * m)
     end
 
     c = BigInt(0)
-    len = SQISIGN_challenge_length
-    n, r = divrem(len, 8)
-    r > 0 && (n += 1)
-    for i in 1:n
+    for i in 1:CHallengeByteLength
         c += BigInt(h[i]) << (8*(i-1))
     end
-    r > 0 && (c >>= 8 - r)
 
-    return c
+    return c % ChallengeDegree
 end
 
-function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData, is_compact::Bool)
+function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     two_to_a = BigInt(1) << ExponentForDim2
     Apub = pk
     a24pub = A_to_a24(Apub)
