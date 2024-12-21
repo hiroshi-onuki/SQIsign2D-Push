@@ -1,6 +1,6 @@
 export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
-    Montgomery_coeff, A_to_a24, a24_to_A, jInvariant_a24, jInvariant_A,
+    Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
     two_e_iso, three_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
     Montgomery_normalize, complete_basis,
     three_iso_curve, three_iso_eval # temporary!
@@ -31,6 +31,20 @@ function random_point_order_l(a24::Proj1{T}, curve_order::Integer, l::Integer) w
         P = random_point(A)
         P = ladder(n, P, a24)
         if !is_infinity(P)
+            return P
+        end
+    end
+end
+
+# random point on a Montgomery curve with order l^e
+function random_point_order_l_power(a24::Proj1{T}, curve_order::Integer, l::Integer, e::Integer) where T <: RingElem
+    n = div(curve_order, BigInt(l)^e)
+    A = a24_to_A(a24)
+    le1 = BigInt(l)^(e-1)
+    while true
+        P = random_point(A)
+        P = ladder(n, P, a24)
+        if !is_infinity(ladder(le1, P, a24))
             return P
         end
     end
@@ -264,6 +278,10 @@ function a24_to_A(a24::Proj1)
     a -= a24.Z
     a += a
     return Proj1(a, a24.Z)
+end
+
+function a24_to_a24pm(a24::Proj1)
+    return Proj1(a24.X, a24.X - a24.Z)
 end
 
 function A_to_a24(A::T) where T <: RingElem

@@ -100,9 +100,9 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     if e_u < e_v
         u = div(u, BigInt(3)^e_u)
         v = div(v, BigInt(3)^e_u)
-        xP3e_d = ladder(BigInt(3)^e_u, xP3e_d, a24)
-        xQ3e_d = ladder(BigInt(3)^e_u, xQ3e_d, a24)
-        xPQ3e_d = ladder(BigInt(3)^e_u, xPQ3e_d, a24)
+        #xP3e_d = ladder(BigInt(3)^e_u, xP3e_d, a24)
+        #xQ3e_d = ladder(BigInt(3)^e_u, xQ3e_d, a24)
+        #xPQ3e_d = ladder(BigInt(3)^e_u, xPQ3e_d, a24)
         u_inv = invmod(u, BigInt(3)^(ExponentOfThree - e_u))
         xKd = ladder3pt(v * u_inv, xP3e_d, xQ3e_d, xPQ3e_d, a24d)
 
@@ -115,9 +115,9 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     else
         u = div(u, BigInt(3)^e_v)
         v = div(v, BigInt(3)^e_v)
-        xP3e_d = ladder(BigInt(3)^e_v, xP3e_d, a24)
-        xQ3e_d = ladder(BigInt(3)^e_v, xQ3e_d, a24)
-        xPQ3e_d = ladder(BigInt(3)^e_v, xPQ3e_d, a24)
+        #xP3e_d = ladder(BigInt(3)^e_v, xP3e_d, a24)
+        #xQ3e_d = ladder(BigInt(3)^e_v, xQ3e_d, a24)
+        #xPQ3e_d = ladder(BigInt(3)^e_v, xPQ3e_d, a24)
         v_inv = invmod(v, BigInt(3)^(ExponentOfThree - e_v))
         xKd = ladder3pt(u * v_inv, xQ3e_d, xP3e_d, xPQ3e_d, a24d)
 
@@ -132,13 +132,65 @@ function ComposedRandIsog(d::BigInt, xK::Proj1{T}, global_data::GlobalData) wher
     return a24d, xKd, ExponentOfThree - min(e_u, e_v), xPd, xQd, xPQd
 end
 
-function PushRandIsog(d::BigInt, a24m::Proj1{T}, xP2m::Proj1{T}, xQ2m::Proj1{T}, xPQ2m::Proj1{T},
-        xK1::Proj1{T}, xK2::Proj1{T},
-        global_data::GlobalData) where T <: RingElem
+# algorithm for computing auxiliary isogenies
+# input: integer d, the codomain a24m of the isogeny phi of kernel <xK1>, the point xK2 on a24m, phi(P2), phi(Q2)
+# output: the codomain a24aux of a d-isogeny from the codomain of the isogeny psi of kernel <xK2>,
+#    the images of psi*phi(P2), psi*phi(Q2), under the isogeny
+function PushRandIsog(d::BigInt, a24m::Proj1{T}, xK1::Proj1{T}, xK2::Proj1{T},
+        xP2m::Proj1{T}, xQ2m::Proj1{T}, xPQ2m::Proj1{T}, global_data::GlobalData) where T <: RingElem
 
     a24d, xKd, e, xP2d, xQ2d, xPQ2d = ComposedRandIsog(d, xK1, global_data)
 
-    a24md, images = three_e_iso(a24d, xKd, e, [xP2d, xQ2d, xPQ2d], StrategiesDim1Three[e])
- 
-    return Montgomery_normalize(a24F, [xR, xS, xRS])
+    a24md, images = three_e_iso(a24d, xKd, ExponentOfThree, [xP2d, xQ2d, xPQ2d], StrategiesDim1Three[ExponentOfThree])
+    xP2md, xQ2md, xPQ2md = images
+
+    # kernel of (2^e2, 2^e2)-isogeny
+    K1 = CouplePoint(xP2m, xP2md)
+    K2 = CouplePoint(xQ2m, xQ2md)
+    K12 = CouplePoint(xPQ2m, xPQ2md)
+
+    # points to be evaluated by the isogeny
+    O = infinity_point(global_data.Fp2)
+    xK2O = CouplePoint(xK2, O)
+    xP2mO = CouplePoint(xP2m, O)
+    xQ2mO = CouplePoint(xQ2m, O)
+    xPQ2mO = CouplePoint(xPQ2m, O)
+    eval_points = [xP2mO, xQ2mO, xPQ2mO, xK2O]
+
+    # (2^e2, 2^e2)-isogeny
+    Es, images = product_isogeny_sqrt(a24m, a24md, K1, K2, K12, eval_points, ExponentOfTwo, StrategiesDim2[ExponentOfTwo])
+
+    idx = 1
+    a24mm = A_to_a24(Es[idx])
+    xP2mm, xQ2mm, xPQ2mm = images[1][idx], images[2][idx], images[3][idx]
+    w_m = Weil_pairing_2power(Montgomery_coeff(a24m), xP2m, xQ2m, xPQ2m, ExponentOfTwo)
+    w_mm = Weil_pairing_2power(affine(Es[idx]), xP2mm, xQ2mm, xPQ2mm, ExponentOfTwo)
+    if w_mm != w_m^d
+        idx = 2
+    end
+    a24mm = A_to_a24(Es[idx])
+    xP2mm, xQ2mm, xPQ2mm, xK2mm = images[1][idx], images[2][idx], images[3][idx], images[4][idx]
+
+    # check
+    w_mm = Weil_pairing_2power(affine(Es[idx]), xP2mm, xQ2mm, xPQ2mm, ExponentOfTwo)
+    @assert w_mm == w_m^d
+
+    # order of xK2mm
+    e = 0
+    tmp = xK2mm
+    a24mm_pm = a24_to_a24pm(a24mm)
+    while !is_infinity(tmp)
+        tmp = xTPL(tmp, a24mm_pm)
+        e += 1
+    end
+
+    a24aux, images = three_e_iso(a24mm, xK2mm, e, [xP2mm, xQ2mm, xPQ2mm], StrategiesDim1Three[e])
+    if e < ExponentOfThree
+        # here, we don't use any strategy because the degree of the isogeny is small
+        xK = random_point_order_l_power(a24aux, p + 1, 3, ExponentOfThree - e)
+        a24aux, images = three_e_iso(a24aux, xK, ExponentOfThree - e, images)
+    end
+    xP2aux, xQ2aux, xPQ2aux = images
+
+    return a24aux, xP2aux, xQ2aux, xPQ2aux
 end

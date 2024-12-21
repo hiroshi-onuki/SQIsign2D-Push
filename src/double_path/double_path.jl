@@ -1,7 +1,10 @@
 # FastDoublePath from SQIsignHD
-# phi_2, phi_3: E_0 -> E are 2^(2e2), 3^(2e3)-isogenies, respectively.
-# If is_both is true, then the function returns E, phi_3(P2), phi_3(Q2), phi_2(P3), phi_2(Q3).
-# Otherwise, the function returns E, phi_3(P2), phi_3(Q2).
+# phi2, psi2 : E0 -> E2 -> E; (2^e2)-isogenies s.t. the composition corresponds to an ideal J2
+# phi3, psi3 : E0 -> E3 -> E; (3^e3)-isogenies s.t. the composition corresponds to an ideal J3
+# If is_both is true, then the function returns
+#    E, psi3*phi3(P2), psi3*phi3(Q2), psi2*phi2(P3), psi2*phi2(Q3), J3, J2
+# Otherwise, the function returns
+#    E, E3, ker(phi3), ker(psi3), phi3(P2), phi3(Q2), psi3*phi3(P2), psi3*phi3(Q2), J3
 function FastDoublePath(is_both::Bool, global_data::GlobalData)
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
@@ -49,6 +52,7 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
 
     # 3^e3-isogeny: E3 -> E, the latter part of 3^(2e3)-isogeny from E0 with kernel alpha + 3^(2e3)*O0
     a24_3, images2 = Montgomery_normalize(a24_3, [xP2e3, xQ2e3, xPQ2e3])
+    xP2e3, xQ2e3, xPQ2e3 = images2
     a24_3d, images = two_e_iso(a24d, xK_dual2, ExponentOfTwo, [xK_dual3], StrategiesDim1Two[ExponentOfTwo])
     a24_3d, images = Montgomery_normalize(a24_3d, images)
     @assert a24_3 == a24_3d
@@ -56,7 +60,8 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
     a24, images = three_e_iso(a24_3, xK, ExponentOfThree, images2, StrategiesDim1Three[ExponentOfThree])
     a24, images = Montgomery_normalize(a24, images)
     xP2e_d, xQ2e_d, xPQ2e_d = images
-    !is_both && return a24, xP2e_d, xQ2e_d, xPQ2e_d
+    J3 = LeftIdeal(alpha, three_to_e3^2)
+    !is_both && return a24_3, a24, K3, xK, xP2e3, xQ2e3, xPQ2e3, xP2e_d, xQ2e_d, xPQ2e_d, J3
 
     # 2^e2-isogeny: E2 -> E, the latter part of 2^(2e2)-isogeny from E0 with kernel bar{alpha} + 2^(2e2)*O0
     a24_2, images3 = Montgomery_normalize(a24_2, [xP3e2, xQ3e2, xPQ3e2])
@@ -68,5 +73,6 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
     a24d, images = Montgomery_normalize(a24, images)
     @assert a24 == a24d
     xP3e_d, xQ3e_d, xPQ3e_d = images
-    return a24, xP2e_d, xQ2e_d, xPQ2e_d, xP3e_d, xQ3e_d, xPQ3e_d
+    J2 = LeftIdeal(involution(alpha), two_to_e2^2)
+    return a24, xP2e_d, xQ2e_d, xPQ2e_d, xP3e_d, xQ3e_d, xPQ3e_d, J3, J2
 end
