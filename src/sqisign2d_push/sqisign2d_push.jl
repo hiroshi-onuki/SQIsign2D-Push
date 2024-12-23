@@ -43,7 +43,7 @@ end
 
 function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     Apk = pk
-    a24pk = A_to_a24(Apub)
+    a24pk = A_to_a24(Apk)
     xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M3pk, I3sk, I2sk, alpha_sk = sk
 
     # commitment
@@ -51,13 +51,13 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     Acom = Montgomery_coeff(a24com)
 
     # challenge
-    chl = challenge(Montgomery_coeff(Acom, m))
-    a, b = M3pk + [1, chl]
+    chl = challenge(Acom, m)
+    a, b = M3pk * [1, chl]
     a, b, c, d = global_data.E0_data.M44inv_chall * [b, 0, -a, 0]
     alpha = QOrderElem(a, b, c, d)
     Ichl = LeftIdeal(alpha, ChallengeDegree)
     Kchl = ladder3pt(chl, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, a24pk)
-    a24chl, (xP2chl, xQ2chl, xPQ2chl) = three_e_iso(a24pk, Kchl, ExponentOfThree, [xP2pk, xQ2pk, xPQ2pk], StrategiesDim1[ExponentOfThree])
+    a24chl, (xP2chl, xQ2chl, xPQ2chl) = three_e_iso(a24pk, Kchl, ExponentOfThree, [xP2pk, xQ2pk, xPQ2pk], StrategiesDim1Three[ExponentOfThree])
     a24chl, (xP2chl, xQ2chl, xPQ2chl) = Montgomery_normalize(a24chl, [xP2chl, xQ2chl, xPQ2chl])
     Achl = Montgomery_coeff(a24chl)
 

@@ -5,7 +5,7 @@ function check(param::Module, num::Int)
     for i in 1:num
         pk, sk = param.key_gen(global_data)
         m = "message to sign"
-        param.signing(pk, sk, m, global_data, is_compact)
+        param.signing(pk, sk, m, global_data)
         """
         sign, cnt = param.signing(pk, sk, m, global_data, is_compact)
         println("sign len: ", length(sign), " cnt: ", cnt)

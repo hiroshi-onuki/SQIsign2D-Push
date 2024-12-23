@@ -70,7 +70,7 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
     @assert a24_2 == a24_2d
     xK = images[1]
     a24d, images = two_e_iso(a24_2, xK, ExponentOfTwo, images3, StrategiesDim1Two[ExponentOfTwo])
-    a24d, images = Montgomery_normalize(a24, images)
+    a24d, images = Montgomery_normalize(a24d, images)
     @assert a24 == a24d
     xP3e_d, xQ3e_d, xPQ3e_d = images
     J2 = LeftIdeal(involution(alpha), two_to_e2^2)
