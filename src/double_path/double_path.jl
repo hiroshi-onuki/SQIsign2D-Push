@@ -1,10 +1,10 @@
 # FastDoublePath from SQIsignHD
-# phi2, psi2 : E0 -> E2 -> E; (2^e2)-isogenies s.t. the composition corresponds to an ideal J2
-# phi3, psi3 : E0 -> E3 -> E; (3^e3)-isogenies s.t. the composition corresponds to an ideal J3
+# phi2, psi2 : E0 -> E2 -> E; (2^e2)-isogenies s.t. the composition corresponds to an ideal J2 = bar{alpha} + 2^2e2*O0
+# phi3, psi3 : E0 -> E3 -> E; (3^e3)-isogenies s.t. the composition corresponds to an ideal J3 = alpha + 3^2e3*O0
 # If is_both is true, then the function returns
 #    E, psi3*phi3(P2), psi3*phi3(Q2), psi2*phi2(P3), psi2*phi2(Q3), J3, J2
 # Otherwise, the function returns
-#    E, E3, ker(phi3), ker(psi3), phi3(P2), phi3(Q2), psi3*phi3(P2), psi3*phi3(Q2), J3
+#    E3, E, ker(phi3), ker(psi3), phi3(P2), phi3(Q2), psi3*phi3(P2), psi3*phi3(Q2), J3, alpha
 function FastDoublePath(is_both::Bool, global_data::GlobalData)
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
@@ -74,5 +74,5 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
     @assert a24 == a24d
     xP3e_d, xQ3e_d, xPQ3e_d = images
     J2 = LeftIdeal(involution(alpha), two_to_e2^2)
-    return a24, xP2e_d, xQ2e_d, xPQ2e_d, xP3e_d, xQ3e_d, xPQ3e_d, J3, J2
+    return a24, xP2e_d, xQ2e_d, xPQ2e_d, xP3e_d, xQ3e_d, xPQ3e_d, J3, J2, alpha
 end

@@ -43,6 +43,7 @@ struct E0Data
     basis3e::BasisData
     Matrices_2e::Vector{Matrix{BigInt}}
     Matrices_3e::Vector{Matrix{BigInt}}
+    M44inv_chall::Matrix{BigInt}
     Weil_P2eQ2e::FqFieldElem
     isomorphism_to_A0::Function
     dlog_data::DlogData

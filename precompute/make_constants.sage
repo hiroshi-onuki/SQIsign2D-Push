@@ -33,6 +33,9 @@ def make_constants(p, e2, e3, file_name):
     # 3^e3-torsion in E(Fp2)
     P, Q = tp.basis(E0, Fp2, False, 3, e3)
     Ms = end.action_matrices([P, Q], 3^e3, zeta4, Fp4)
+    Msd = [[[1, 0], [0, 1]]] + Ms
+    Z3e = quotient(ZZ, 3^e3)
+    M44 = matrix(Z3e, [[Msd[i][j][k] for i in range(4)] for j, k in [(0, 0), (1, 0), (0, 1), (1, 1)]])
     Px, Py = [tp.Fp2ToFp2d(v, zeta4, Fp2_i) for v in P.xy()]
     Qx, Qy = [tp.Fp2ToFp2d(v, zeta4, Fp2_i) for v in Q.xy()]
     out_file.write("P3e = Point(%s, %s)\n" % (Px, Py))
@@ -40,6 +43,7 @@ def make_constants(p, e2, e3, file_name):
     out_file.write("M_i_3e = %s\n" % matrix_to_str(Ms[0]))
     out_file.write("M_ij_3e = %s\n" % matrix_to_str(Ms[1]))
     out_file.write("M_1k_3e = %s\n" % matrix_to_str(Ms[2]))
+    out_file.write("M44inv_chall = %s\n" % matrix44_to_str(M44^(-1)))
 
     out_file.close()
 
