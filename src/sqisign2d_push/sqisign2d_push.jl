@@ -62,10 +62,12 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     Achl = Montgomery_coeff(a24chl)
 
     # find alpha in bar(Icom)IskIcha suitable for the response
-    IsecIchl = intersection(I2sk, Ichl)
-    IsecIchl = IsecIchl * alpha_sk
-    @assert gcd(IsecIchl) == two_to_e2
-
+    IskIchl = intersection(I2sk, Ichl)
+    IskIchl = div(IskIchl * alpha_sk, two_to_e2^2)
+    I = involution_product(Icom, IskIchl)
+    @assert norm(I) == three_to_e3^5
+    alpha, q, found = element_for_response(I, norm(I), ExponentOfTwo)
+    @assert found
 end
 
 function verify_compact(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::GlobalData)
