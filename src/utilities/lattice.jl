@@ -171,17 +171,21 @@ function short_vectors(basis::Vector{Vector{T}}, quadratic_form::Function, C::T)
 end
 
 # Is LLL reduced?
-function LLLcheck(b::Vector{Vector{T}}, M::Matrix{T}) where T <: Integer
+function LLLcheck(b::Vector{Vector{T}}, quadratic_form::Function) where T <: Integer
     # input check
     n = length(b)
     n == 0 && error("no input vecotor")
-    m = length(b[1])
-    prod([length(v) == m for v in b]) || error("lengths of generatars are different")
-    m == size(M,1) == size(M,2) || error("sizes of vector and bilinear matrix are different")
-    m < n && error("number of vectors greater than these dimension")
 
+    e = [[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1]]
+    M = Matrix{Rational{T}}(undef, n, n)
+    for i in 1:4
+        for j in 1:4
+            M[i,j] = quadratic_form(e[i], e[j])
+        end
+    end
     q(x, y) = transpose(x)*M*y
     mu = zeros(Rational{T}, n, n)
+    b = [Vector{Rational{T}}(b[i]) for i in 1:n]
     bs = [zeros(Rational{T}, n, n)[:,i] for i in 1:n]
     for i in 1:n
         bs[i] = copy(b[i])
