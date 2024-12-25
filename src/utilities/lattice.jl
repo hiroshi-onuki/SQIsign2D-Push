@@ -43,7 +43,7 @@ function integral_LLL(basis::Vector{Vector{T}}, quadratic_form::Function) where 
     k = 2
     kmax = 1
     d = zeros(T, n+1)
-    d[1] = 1
+    d[1] = T(1)
     d[2] = q(b[1], b[1])
     H = zeros(T, n, n)
     for i in 1:n H[i,i] = 1 end
@@ -66,7 +66,7 @@ function integral_LLL(basis::Vector{Vector{T}}, quadratic_form::Function) where 
             d[k+1] == 0 && error("vectors are not linearly independent")
         end
         b, H, lam = REDI(k, k-1, b, d, H, lam)
-        while d[k+1]*d[k-1] < 3//4*d[k]^2 - lam[k, k-1]^2
+        while 4*d[k+1]*d[k-1] < 3*d[k]^2 - 4*lam[k, k-1]^2
             b, d, H, lam = SWAPI(k, kmax, b, d, H, lam)
             k = max(2, k-1)
             b, H, lam = REDI(k, k-1, b, d, H, lam)
@@ -101,11 +101,11 @@ function SWAPI(k::Int, kmax::Int, b::Vector{Vector{T}}, d::Vector{T}, H::Matrix{
         end
     end
     lamd = lam[k,k-1]
-    B = T((d[k-1]*d[k+1] + lamd^2) // d[k])
+    B = div(d[k-1]*d[k+1] + lamd^2, d[k])
     for i in k+1:kmax
         t = lam[i,k]
-        lam[i,k] = T((d[k+1]*lam[i,k-1] - lamd*t) // d[k])
-        lam[i,k-1] = T((B*t + lamd*lam[i,k]) // d[k+1])
+        lam[i,k] = div(d[k+1]*lam[i,k-1] - lamd*t, d[k])
+        lam[i,k-1] = div(B*t + lamd*lam[i,k], d[k+1])
     end
     d[k] = B
     return b, d, H, lam

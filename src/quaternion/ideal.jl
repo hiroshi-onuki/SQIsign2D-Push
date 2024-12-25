@@ -74,7 +74,7 @@ end
 
 # return alpha in I s.t. q_I(alpha) < 2^a and q_I(alpha) neq 0 mod 3
 function element_for_response(I::LeftIdeal, nI::BigInt, a::Int)
-    q(x, y) = div(quadratic_form(QOrderElem(x), QOrderElem(y)), 2)
+    q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
 
     # LLL reduction
     Imatrix = ideal_to_matrix(I)
@@ -83,10 +83,8 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int)
     red_basis = [LLLmat[:, i] for i in 1:4]
     v = red_basis[1]
     alpha = QOrderElem(v[1], v[2], v[3], v[4])
-    println(norm(alpha))
-    println(q(v, v))
 
-    q = make_quadratic_form_coeffs(red_basis, q)
+    q = make_quadratic_form_coeffs(red_basis, (x, y) -> div(q(x, y), 2))
     S = zeros(Rational{Integer}, 4)
     U = zeros(Rational{Integer}, 4)
     L = zeros(Integer, 4)
