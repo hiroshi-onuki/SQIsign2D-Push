@@ -57,7 +57,7 @@ function ec_bi_dlog_E0d(xP::Proj1{FqFieldElem}, xQ::Proj1{FqFieldElem}, xPQ::Pro
     return ec_bi_dlog_E0d(P, Q, global_data, idx)
 end
 
-# return n1, n2, n3, n4 such that P = [n1]P0 + [n1]Q0, Q = [n3]P0 + [n4]Q0
+# return n1, n2, n3, n4 such that P = [n1]P0 + [n2]Q0, Q = [n3]P0 + [n4]Q0
 function ec_bi_dlog(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, 
                     xPb::Proj1{T}, xQb::Proj1{T}, xPQb::Proj1{T}, dlog_data::DlogData) where T <: RingElem
     P = Point(A, xP)

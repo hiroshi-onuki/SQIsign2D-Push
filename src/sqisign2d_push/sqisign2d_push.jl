@@ -59,6 +59,12 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     Kchl = ladder3pt(chl, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, a24pk)
     a24chl, (xP2chl, xQ2chl, xPQ2chl) = three_e_iso(a24pk, Kchl, ExponentOfThree, [xP2pk, xQ2pk, xPQ2pk], StrategiesDim1Three[ExponentOfThree])
     a24chl, (xP2chl, xQ2chl, xPQ2chl) = Montgomery_normalize(a24chl, [xP2chl, xQ2chl, xPQ2chl])
+    xP2chl_fix, xQ2chl_fix, xPQ2chl_fix = torsion_basis(a24chl, 2, ExponentOfTwo)
+    n1, n2, n3, n4 = ec_bi_dlog(Montgomery_coeff(a24chl), xP2chl, xQ2chl, xPQ2chl, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, global_data.E0_data.dlog_data)
+    @assert xP2chl == linear_comb_2_e(n1, n2, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, ExponentOfTwo)
+    @assert xQ2chl == linear_comb_2_e(n3, n4, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, ExponentOfTwo)
+    @assert xPQ2chl == linear_comb_2_e(n1 - n3, n2 - n4, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, ExponentOfTwo)
+    M2chl = [n1 n3; n2 n4]
 
     # find alpha in bar(Icom)IskIcha suitable for the response
     IskIchl = intersection(I2sk, Ichl)
@@ -67,9 +73,14 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     @assert norm(I) == three_to_e3^5
     alpha, q, found = element_for_response(I, norm(I), ExponentOfTwo)
     @assert found
+    f2 = BigInt(1) << valuation(gcd(alpha), 2)
+    alpha = div(alpha, f2)
+    q = div(q, f2^2)
 
-    # compute an auxiliary isogeny
+    # compute (q', e_dim1, e_dim2) s.t. q = q' * 2^e_dim1 and q' < 2^e_dim2
     e_dim1 = valuation(q, 2)
+    println("e_dim1: ", e_dim1)
+    two_to_e_dim1 = BigInt(1) << e_dim1
     qd = q >> e_dim1
     e_dim2 = 0
     two_to_e_dim2 = BigInt(1)
@@ -77,6 +88,31 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         e_dim2 += 1
         two_to_e_dim2 <<= 1
     end
+
+    # compute Echl_d
+    a, b = kernel_coefficients(alpha, 2, e_dim1, global_data.E0_data.Matrices_2e)
+    a, b = M2chl * [a, b]
+    if a % 2 != 0
+        coeff_ker_dim1 = (b * invmod(a, two_to_e_dim1)) % two_to_e_dim1
+        ceoff_ker_dim1_isP = 0
+        xKchl_d = ladder3pt(coeff_ker_dim1, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl)
+    else
+        coeff_ker_dim1 = (a * invmod(b, two_to_e_dim1)) % two_to_e_dim1
+        ceoff_ker_dim1_isP = 1
+        xKchl_d = ladder3pt(coeff_ker_dim1, xQ2chl_fix, xP2chl_fix, xPQ2chl_fix, a24chl)
+    end
+    xKchl_d = xDBLe(xKchl_d, a24chl, ExponentOfTwo - e_dim1)
+    a24chl_d, (xP2chl_d, xQ2chl_d, xPQ2chl_d) = two_e_iso(a24chl, xKchl_d, e_dim1, [xP2chl, xQ2chl, xPQ2chl])
+    a24chl_d, (xP2chl_d, xQ2chl_d, xPQ2chl_d) = Montgomery_normalize(a24chl_d, [xP2chl_d, xQ2chl_d, xPQ2chl_d])
+    xP2chl_d, xQ2chl_d, xPQ2chl_d = action_on_torsion_basis(involution(alpha), a24chl_d, xP2chl_d, xQ2chl_d, xPQ2chl_d, global_data.E0_data)
+    @assert is_infinity(xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
+    @assert is_infinity(xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
+    @assert is_infinity(xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
+    @assert !is_infinity(xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
+    @assert !is_infinity(xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
+    @assert !is_infinity(xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
+
+    # compute an auxiliary isogeny
     d_aux = two_to_e_dim2 - qd
     e3_dim1 = valuation(d_aux, 3)
     d_aux_d = div(d_aux, BigInt(3)^e3_dim1)
