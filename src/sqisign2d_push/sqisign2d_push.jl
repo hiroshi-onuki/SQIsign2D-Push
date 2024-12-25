@@ -104,13 +104,26 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     xKchl_d = xDBLe(xKchl_d, a24chl, ExponentOfTwo - e_dim1)
     a24chl_d, (xP2chl_d, xQ2chl_d, xPQ2chl_d) = two_e_iso(a24chl, xKchl_d, e_dim1, [xP2chl, xQ2chl, xPQ2chl])
     a24chl_d, (xP2chl_d, xQ2chl_d, xPQ2chl_d) = Montgomery_normalize(a24chl_d, [xP2chl_d, xQ2chl_d, xPQ2chl_d])
-    xP2chl_d, xQ2chl_d, xPQ2chl_d = action_on_torsion_basis(involution(alpha), a24chl_d, xP2chl_d, xQ2chl_d, xPQ2chl_d, global_data.E0_data)
+    c = invmod(three_to_e3^2 * ChallengeDegree, two_to_e2)
+    xP2chl_d, xQ2chl_d, xPQ2chl_d = action_on_torsion_basis(involution(alpha), a24chl_d, xP2chl_d, xQ2chl_d, xPQ2chl_d, global_data.E0_data, c)
     @assert is_infinity(xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
     @assert is_infinity(xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
     @assert is_infinity(xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
     @assert !is_infinity(xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
     @assert !is_infinity(xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
     @assert !is_infinity(xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
+    e = ExponentOfTwo - e_dim1 - e_dim2
+    if e >= 2
+        xP2chl_d = xDBLe(xP2chl_d, a24chl_d, e - 2)
+        xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, e - 2)
+        xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, e - 2)
+        non_sqrt = true
+    else
+        xP2chl_d = xDBLe(xP2chl_d, a24chl_d, e)
+        xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, e)
+        xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, e)
+        non_sqrt = false
+    end
 
     # compute an auxiliary isogeny
     d_aux = two_to_e_dim2 - qd
@@ -122,6 +135,26 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         a24aux, (xP2aux, xQ2aux, xPQ2aux) = three_e_iso(a24aux, xK3aux, e3_dim1, [xP2aux, xQ2aux, xPQ2aux])
     end
     a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
+    if non_sqrt
+        xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2 - 2)
+        xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2 - 2)
+        xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2 - 2)
+    else
+        xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2)
+        xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2)
+        xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2)
+    end
+
+    # check by dim2 isogeny
+    K1 = CouplePoint(xP2chl_d, xP2aux)
+    K2 = CouplePoint(xQ2chl_d, xQ2aux)
+    K12 = CouplePoint(xPQ2chl_d, xPQ2aux)
+    if non_sqrt
+        Es, _ = product_isogeny(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
+    else
+        Es, _ = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
+    end
+    @assert jInvariant_A(Es[1]) == jInvariant_a24(a24com) || jInvariant_A(Es[2]) == jInvariant_a24(a24com)
 end
 
 function verify_compact(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::GlobalData)
