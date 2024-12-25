@@ -95,37 +95,13 @@ function make_E0_data()
     Matrices_3e = [M_i_3e, M_ij_3e, M_1k_3e]
 
     # precomputed values for discrete logarithm
-    tp_table = make_pairing_table(A0, P2e, ExponentOfTwo)
-    tp_P2e_Q2e = Tate_pairing_P0(Q2e, tp_table, Cofactor)
     window_size = 3
-    fq_dlog_table1, fq_dlog_table2 = make_dlog_table(tp_P2e_Q2e, ExponentOfTwo, window_size)
+    w = Weil_pairing_2power(A0, P2e, Q2e, ExponentOfTwo)
+    fq_dlog_table1, fq_dlog_table2 = make_dlog_table(w, ExponentOfTwo, window_size)
     strategy_dlog = compute_strategy(div(ExponentOfTwo, window_size) - 1, window_size, 1)
     dlog_data = DlogData(ExponentOfTwo, window_size, fq_dlog_table1, fq_dlog_table2, strategy_dlog)
 
-    w = Weil_pairing_2power(A0, P2e, Q2e, ExponentOfTwo)
-
-    # make constants for isomorphism to the curve E_A0
-    _, T = polynomial_ring(Fp2, "T")
-    As = roots((256 * (T^2 - 3)^3 - 1728 * (T^2 - 4))/T^2)
-    A0d = As[1]
-    beta = -A0d/3
-    gamma = square_root(1 / (1 - 3*beta^2))
-    A0dd = As[2]
-    beta_d = -A0dd/3
-    gamma_d = square_root(1 / (1 - 3*beta_d^2))
-    function isomorphism_to_A0(A::Proj1{FqFieldElem}, Ps::Vector{Proj1{FqFieldElem}})
-        if A == Proj1(A0)
-            return Ps
-        elseif A == Proj1(A0d)
-            return [Proj1(gamma*(P.X - beta*P.Z), P.Z) for P in Ps]
-        elseif A == Proj1(A0dd)
-            return [Proj1(gamma_d*(P.X - beta_d*P.Z), P.Z) for P in Ps]
-        else
-            throw(ArgumentError("A is not A0d or A0dd"))
-        end
-    end
-
-    return Fp2, E0Data(A0, A0d, A0dd, a24_0, jInvariant_A(A0), basis2e3e, basis2e, basis3e, Matrices_2e, Matrices_3e, M44inv_chall, w, isomorphism_to_A0, dlog_data, tp_table)
+    return Fp2, E0Data(A0, a24_0, jInvariant_A(A0), basis2e3e, basis2e, basis3e, Matrices_2e, Matrices_3e, M44inv_chall, dlog_data)
 end
 
 # Fp2 and values in Fp2

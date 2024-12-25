@@ -34,8 +34,6 @@ end
 
 struct E0Data
     A0::FqFieldElem
-    A0d::FqFieldElem
-    A0dd::FqFieldElem
     a24_0::Proj1{FqFieldElem}
     j0::FqFieldElem
     basis2e3e::BasisData
@@ -44,10 +42,7 @@ struct E0Data
     Matrices_2e::Vector{Matrix{BigInt}}
     Matrices_3e::Vector{Matrix{BigInt}}
     M44inv_chall::Matrix{BigInt}
-    Weil_P2eQ2e::FqFieldElem
-    isomorphism_to_A0::Function
     dlog_data::DlogData
-    tate_table::Vector{Vector{FqFieldElem}}
 end
 
 # structure for precomputed values
