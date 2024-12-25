@@ -21,6 +21,26 @@ include("../sqisign2d_push/sqisign2d_push.jl")
 
 const StrategiesDim2 = Dict(
     ExponentOfTwo => compute_strategy(ExponentOfTwo-2, 2, 1),
+    ExponentOfTwo - 1 => compute_strategy(ExponentOfTwo-3, 2, 1),
+    ExponentOfTwo - 2 => compute_strategy(ExponentOfTwo-4, 2, 1),
+    ExponentOfTwo - 3 => compute_strategy(ExponentOfTwo-5, 2, 1),
+    ExponentOfTwo - 4 => compute_strategy(ExponentOfTwo-6, 2, 1),
+    ExponentOfTwo - 5 => compute_strategy(ExponentOfTwo-7, 2, 1),
+    ExponentOfTwo - 6 => compute_strategy(ExponentOfTwo-8, 2, 1),
+    ExponentOfTwo - 7 => compute_strategy(ExponentOfTwo-9, 2, 1),
+    ExponentOfTwo - 8 => compute_strategy(ExponentOfTwo-10, 2, 1),
+    ExponentOfTwo - 9 => compute_strategy(ExponentOfTwo-11, 2, 1),
+    ExponentOfTwo - 10 => compute_strategy(ExponentOfTwo-12, 2, 1),
+    ExponentOfTwo - 11 => compute_strategy(ExponentOfTwo-13, 2, 1),
+    ExponentOfTwo - 12 => compute_strategy(ExponentOfTwo-14, 2, 1),
+    ExponentOfTwo - 13 => compute_strategy(ExponentOfTwo-15, 2, 1),
+    ExponentOfTwo - 14 => compute_strategy(ExponentOfTwo-16, 2, 1),
+    ExponentOfTwo - 15 => compute_strategy(ExponentOfTwo-17, 2, 1),
+    ExponentOfTwo - 16 => compute_strategy(ExponentOfTwo-18, 2, 1),
+    ExponentOfTwo - 17 => compute_strategy(ExponentOfTwo-19, 2, 1),
+    ExponentOfTwo - 18 => compute_strategy(ExponentOfTwo-20, 2, 1),
+    ExponentOfTwo - 19 => compute_strategy(ExponentOfTwo-21, 2, 1),
+    ExponentOfTwo - 20 => compute_strategy(ExponentOfTwo-22, 2, 1),
 )
 const StrategiesDim1Two = Dict(
     ExponentOfTwo => compute_strategy(div(ExponentOfTwo,2) - 1, 1, 1),
@@ -28,14 +48,6 @@ const StrategiesDim1Two = Dict(
 
 const StrategiesDim1Three = Dict(
     ExponentOfThree => compute_strategy(ExponentOfThree - 1, 1, 1),
-    ExponentOfThree - 1 => compute_strategy(ExponentOfThree - 2, 1, 1),
-    ExponentOfThree - 2 => compute_strategy(ExponentOfThree - 3, 1, 1),
-    ExponentOfThree - 3 => compute_strategy(ExponentOfThree - 4, 1, 1),
-    ExponentOfThree - 4 => compute_strategy(ExponentOfThree - 5, 1, 1),
-    ExponentOfThree - 5 => compute_strategy(ExponentOfThree - 6, 1, 1),
-    ExponentOfThree - 6 => compute_strategy(ExponentOfThree - 7, 1, 1),
-    ExponentOfThree - 7 => compute_strategy(ExponentOfThree - 8, 1, 1),
-    ExponentOfThree - 8 => compute_strategy(ExponentOfThree - 9, 1, 1),
 )
 
 function make_E0_data()

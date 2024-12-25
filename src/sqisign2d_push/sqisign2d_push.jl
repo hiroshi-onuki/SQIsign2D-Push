@@ -59,7 +59,6 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     Kchl = ladder3pt(chl, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, a24pk)
     a24chl, (xP2chl, xQ2chl, xPQ2chl) = three_e_iso(a24pk, Kchl, ExponentOfThree, [xP2pk, xQ2pk, xPQ2pk], StrategiesDim1Three[ExponentOfThree])
     a24chl, (xP2chl, xQ2chl, xPQ2chl) = Montgomery_normalize(a24chl, [xP2chl, xQ2chl, xPQ2chl])
-    Achl = Montgomery_coeff(a24chl)
 
     # find alpha in bar(Icom)IskIcha suitable for the response
     IskIchl = intersection(I2sk, Ichl)
@@ -68,6 +67,25 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     @assert norm(I) == three_to_e3^5
     alpha, q, found = element_for_response(I, norm(I), ExponentOfTwo)
     @assert found
+
+    # compute an auxiliary isogeny
+    e_dim1 = valuation(q, 2)
+    qd = q >> e_dim1
+    e_dim2 = 0
+    two_to_e_dim2 = BigInt(1)
+    while two_to_e_dim2 < qd
+        e_dim2 += 1
+        two_to_e_dim2 <<= 1
+    end
+    d_aux = two_to_e_dim2 - qd
+    e3_dim1 = valuation(d_aux, 3)
+    d_aux_d = div(d_aux, BigInt(3)^e3_dim1)
+    a24aux, xP2aux, xQ2aux, xPQ2aux = PushRandIsog(d_aux_d, a24mid, xK1, xK2, xP2mid, xQ2mid, xPQmid, global_data)
+    if e3_dim1 > 0
+        xK3aux = random_point_order_l_power(a24aux, p + 1, 3, e3_dim1)
+        a24aux, (xP2aux, xQ2aux, xPQ2aux) = three_e_iso(a24aux, xK3aux, e3_dim1, [xP2aux, xQ2aux, xPQ2aux])
+    end
+    a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
 end
 
 function verify_compact(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::GlobalData)

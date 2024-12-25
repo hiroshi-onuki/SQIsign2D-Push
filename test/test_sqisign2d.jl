@@ -3,6 +3,7 @@ using SQIsign2D_Push
 function check(param::Module, num::Int)
     global_data = param.make_precomputed_values()
     for i in 1:num
+        println("test $i start")
         pk, sk = param.key_gen(global_data)
         m = "message to sign"
         param.signing(pk, sk, m, global_data)
@@ -15,6 +16,7 @@ function check(param::Module, num::Int)
             @assert param.verify(pk, sign, m, global_data)
         end
         """
+        println("test $i end")
     end
 end
 

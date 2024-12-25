@@ -117,7 +117,6 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int)
                 v = sum([x[i]*red_basis[i] for i in 1:4])
                 alpha = QOrderElem(v[1], v[2], v[3], v[4])
                 newN = div(norm(alpha), nI)
-                println(newN)
                 newN % 3 != 0 && return alpha, newN, true
             else
                 return Quaternion_0, 0, false
