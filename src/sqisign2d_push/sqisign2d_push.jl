@@ -214,9 +214,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     idx += Dim2KernelCoeffByteLength
     sign[idx] = coeff_ker_dim1_isP
     idx += 1
-    sign[idx] = coeff_ker_dim2_isP
-    idx += 1
-    sign[idx] = is_adjust_sqrt
+    sign[idx] = (coeff_ker_dim2_isP << 1) | is_adjust_sqrt
 
     return sign
 end
@@ -247,9 +245,8 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     idx += Dim2KernelCoeffByteLength
     coeff_ker_dim1_isP = sign[idx]
     idx += 1
-    coeff_ker_dim2_isP = sign[idx]
-    idx += 1
-    is_adjust_sqrt = sign[idx]
+    coeff_ker_dim2_isP = sign[idx] >> 1
+    is_adjust_sqrt = sign[idx] & 1
     println("e_dim2 = ", e_dim2, ", e_dim1 = ", e_dim1)
 
     # compute Echl
