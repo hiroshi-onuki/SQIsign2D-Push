@@ -108,6 +108,8 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         a24chl_d, (xP2chl_d, xQ2chl_d, xPQ2chl_d) = two_e_iso(a24chl, xKchl_d, e_dim1, [xP2chl, xQ2chl, xPQ2chl])
         a24chl_d, (xP2chl_d, xQ2chl_d, xPQ2chl_d) = Montgomery_normalize(a24chl_d, [xP2chl_d, xQ2chl_d, xPQ2chl_d])
     else
+        coeff_ker_dim1 = 0
+        ceoff_ker_dim1_isP = 0
         a24chl_d = a24chl
         xP2chl_d = xP2chl
         xQ2chl_d = xQ2chl
@@ -124,16 +126,17 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
 
     e = ExponentOfTwo - e_dim1 - e_dim2
     if e >= 2
-        xP2chl_d = xDBLe(xP2chl_d, a24chl_d, e - 2)
-        xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, e - 2)
-        xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, e - 2)
-        non_sqrt = true
+        e_dim2_torsion = e_dim2 + 2
     else
-        xP2chl_d = xDBLe(xP2chl_d, a24chl_d, e)
-        xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, e)
-        xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, e)
-        non_sqrt = false
+        e_dim2_torsion = e_dim2
     end
+    xP2chl_d = xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
+    xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
+    xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
+
+    xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix = torsion_basis(a24chl_d, 2, e_dim2_torsion)
+    n1, n2, n3, n4 = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24chl_d), xP2chl_d, xQ2chl_d, xPQ2chl_d, xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix, 2, e_dim2_torsion)
+    Mchl_d = [n1 n3; n2 n4]
 
     # compute an auxiliary isogeny
     d_aux = two_to_e_dim2 - qd
@@ -147,124 +150,76 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         a24aux, (xP2aux, xQ2aux, xPQ2aux) = three_e_iso(a24aux, xK3aux, e3_dim1, [xP2aux, xQ2aux, xPQ2aux])
     end
     a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
-    if non_sqrt
-        xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2 - 2)
-        xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2 - 2)
-        xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2 - 2)
+    xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix = torsion_basis(a24aux, 2, e_dim2_torsion)
+    n1, n2, n3, n4 = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24aux), xP2aux, xQ2aux, xPQ2aux, xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, 2, e_dim2_torsion)
+    Maux = [n1 n3; n2 n4]
+    two_to_e_dim2_torsion = BigInt(1) << e_dim2_torsion
+    M = Maux * invmod_2x2(Mchl_d, two_to_e_dim2_torsion)
+    a, b, c, d = M
+    if a % 2 == 0
+        b_inv = invmod(b, two_to_e_dim2_torsion)
+        coeff_ker_dim2_1 = (a * b_inv) % two_to_e_dim2_torsion
+        coeff_ker_dim2_2 = (c * b_inv) % two_to_e_dim2_torsion
+        coeff_ker_dim2_3 = (d * b_inv) % two_to_e_dim2_torsion
+        coeff_ker_dim2_isP = 1
     else
-        xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2)
-        xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2)
-        xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2)
+        a_inv = invmod(a, two_to_e_dim2_torsion)
+        coeff_ker_dim2_1 = (b * a_inv) % two_to_e_dim2_torsion
+        coeff_ker_dim2_2 = (c * a_inv) % two_to_e_dim2_torsion
+        coeff_ker_dim2_3 = (d * a_inv) % two_to_e_dim2_torsion
+        coeff_ker_dim2_isP = 0
     end
 
+    xPcheck = linear_comb_2_e(M[1, 1], M[2, 1], xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, a24aux, e_dim2_torsion)
+    xQcheck = linear_comb_2_e(M[1, 2], M[2, 2], xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, a24aux, e_dim2_torsion)
+    xPQcheck = linear_comb_2_e(M[1, 1] - M[1, 2], M[2, 1] - M[2, 2], xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, a24aux, e_dim2_torsion)
+
     # check by dim2 isogeny
-    K1 = CouplePoint(xP2chl_d, xP2aux)
-    K2 = CouplePoint(xQ2chl_d, xQ2aux)
-    K12 = CouplePoint(xPQ2chl_d, xPQ2aux)
-    if non_sqrt
+    K1 = CouplePoint(xP2chl_d_fix, xPcheck)
+    K2 = CouplePoint(xQ2chl_d_fix, xQcheck)
+    K12 = CouplePoint(xPQ2chl_d_fix, xPQcheck)
+    if e_dim2_torsion > e_dim2
         Es, _ = product_isogeny(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
     else
         Es, _ = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
     end
     @assert jInvariant_A(Es[1]) == jInvariant_a24(a24com) || jInvariant_A(Es[2]) == jInvariant_a24(a24com)
 
-    # compress the signature
+    # make the signature
     sign = Vector{UInt8}(undef, SignatureByteLength)
     idx = 1
     sign[idx:idx+Fp2ByteLength-1] = Fq_to_bytes(Aaux)
     idx += Fp2ByteLength
+    sign[idx:idx+ChallengeByteLength-1] = integer_to_bytes(chl, ChallengeByteLength)
+    idx += ChallengeByteLength
     sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim1, DegreeExponentByteLength)
     idx += DegreeExponentByteLength
     sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim2, DegreeExponentByteLength)
     idx += DegreeExponentByteLength
+    len_coeff_dim1 = Int(ceil(e_dim1/8))
+    len_coeff_dim2 = DegreeExponentByteLength - len_coeff_dim1
+    sign[idx:idx+len_coeff_dim1-1] = integer_to_bytes(coeff_ker_dim1, len_coeff_dim1)
+    idx += len_coeff_dim1
+    sign[idx:idx+len_coeff_dim2-1] = integer_to_bytes(coeff_ker_dim2_1, len_coeff_dim2)
+    idx += len_coeff_dim2
+    sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(coeff_ker_dim2_2, DegreeExponentByteLength)
+    idx += DegreeExponentByteLength
+    sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(coeff_ker_dim2_3, DegreeExponentByteLength)
+    idx += DegreeExponentByteLength
+    sign[idx] = ceoff_ker_dim1_isP
+    idx += 1
+    sign[idx] = coeff_ker_dim2_isP
 
-
+    return sign
 end
 
 function verify_compact(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::GlobalData)
-    Apub = pk
-    a24pub = A_to_a24(Apub)
+    Apk = pk
+    a24pk = A_to_a24(Apub)
 
     # decompress the signature
     idx = 1
-    Aaux = bytes_to_Fq(sign[idx:idx+SQISIGN2D_Fp2_length-1], global_data.Fp2)
-    a24aux = A_to_a24(Aaux)
-    idx += SQISIGN2D_Fp2_length
-    is_n1_odd = sign[idx] & 1 == 0x00
-    is_adjust_sqrt = sign[idx] & 2 == 0x00
-    idx += 1
-    n = Vector{BigInt}(undef, 3)
-    for i in 1:3
-        n[i] = bytes_to_integer(sign[idx:idx+SQISIGN2D_2a_length-1])
-        idx += SQISIGN2D_2a_length
-    end
-    xPfix, xQfix, xPQfix = torsion_basis(Aaux, ExponentForDim2)
-    if is_n1_odd
-        n1, n2, n3, n4 = 1, n[1], n[2], n[3]
-    else
-        n1, n2, n3, n4 = n[1], 1, n[2], n[3]
-    end
-
-    xPaux, xQaux, xPQaux = action_of_matrix([n1 n3; n2 n4], a24aux, xPfix, xQfix, xPQfix, ExponentForDim2)
-
-    bit_s = sign[idx]
-    idx += 1
-    s = bytes_to_integer(sign[idx:idx+SQISIGN2D_challenge_byte_length-1])
-    idx += SQISIGN2D_challenge_byte_length
-    r = bytes_to_integer(sign[idx:idx+SQISIGN2D_challenge_byte_length-1])
-    idx += SQISIGN2D_challenge_byte_length
-    d2cod_bit = sign[idx]
-    idx += 1
-
-    # adjust <(Ppub, Paux), (Qpub, Qaux)> to be isotropic w.r.t.the Weil pairing
-    xPpub, xQpub, xPQpub = torsion_basis(a24pub, ExponentFull)
-    xPpub = xDBLe(xPpub, a24pub, ExponentFull - ExponentForDim2)
-    xQpub = xDBLe(xQpub, a24pub, ExponentFull - ExponentForDim2)
-    xPQpub = xDBLe(xPQpub, a24pub, ExponentFull - ExponentForDim2)
-    two_to_a = BigInt(1) << ExponentForDim2
-    w_aux = Weil_pairing_2power(Aaux, xPaux, xQaux, xPQaux, ExponentForDim2)
-    w_pub = Weil_pairing_2power(Apub, xPpub, xQpub, xPQpub, ExponentForDim2)
-    e_aux = fq_dlog_power_of_2_opt(w_aux, global_data.E0_data.dlog_data[ExponentForDim2])
-    e_pub = fq_dlog_power_of_2_opt(w_pub, global_data.E0_data.dlog_data[ExponentForDim2])
-    e = e_pub * invmod(-e_aux, two_to_a) % two_to_a
-    ed = sqrt_mod_2power(e, ExponentForDim2)
-    is_adjust_sqrt && (ed += two_to_a >> 1)
-    xPaux = ladder(ed, xPaux, a24aux)
-    xQaux = ladder(ed, xQaux, a24aux)
-    xPQaux = ladder(ed, xPQaux, a24aux)
-
-    # isogeny of dimension 2
-    P1P2 = CouplePoint(xPpub, xPaux)
-    Q1Q2 = CouplePoint(xQpub, xQaux)
-    PQ1PQ2 = CouplePoint(xPQpub, xPQaux)
-    Es, _ = product_isogeny_sqrt(a24pub, a24aux, P1P2, Q1Q2, PQ1PQ2, CouplePoint{FqFieldElem}[], CouplePoint{FqFieldElem}[], ExponentForDim2, StrategiesDim2[ExponentForDim2])
-    A1, _ = Montgomery_normalize(A_to_a24(Es[1]), Proj1{FqFieldElem}[])
-    A2, _ = Montgomery_normalize(A_to_a24(Es[2]), Proj1{FqFieldElem}[])
-    A1 = Montgomery_coeff(A1)
-    A2 = Montgomery_coeff(A2)
-    !lex_order(A1, A2) && ((A1, A2) = (A2, A1))
-    if d2cod_bit == 1
-        Acha = A1
-    else
-        Acha = A2
-    end
-
-    a24cha = A_to_a24(Acha)
-    xPcha, xQcha, xPQcha = torsion_basis(Acha, SQISIGN_challenge_length)
-    if bit_s == 1
-        Kcha_dual = ladder3pt(s, xPcha, xQcha, xPQcha, a24cha)
-        P = xQcha
-    else
-        Kcha_dual = ladder3pt(s, xQcha, xPcha, xPQcha, a24cha)
-        P = xPcha
-    end
-    a24com, tmp = two_e_iso(a24cha, Kcha_dual, SQISIGN_challenge_length, [P], StrategiesDim1[SQISIGN_challenge_length])
-    a24com, tmp = Montgomery_normalize(a24com, [tmp[1]])
-    Kcha_d = tmp[1]
-    Acom = Montgomery_coeff(a24com)
-    c = challenge(Acom, m)
-    xPcom, xQcom, xPQcom = torsion_basis(Acom, SQISIGN_challenge_length)
-    Kcha = ladder3pt(c, xPcom, xQcom, xPQcom, a24com)
-
-    return Kcha == ladder(r, Kcha_d, a24com)
 end
