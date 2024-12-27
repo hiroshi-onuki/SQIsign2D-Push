@@ -252,8 +252,8 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     # compute Echl
     xP3pk, xQ3pk, xPQ3pk = torsion_basis(a24pk, 3, ExponentOfThree)
     xKchl = ladder3pt(chl, xP3pk, xQ3pk, xPQ3pk, a24pk)
-    a24chl, _ = three_e_iso(a24pk, xKchl, ExponentOfThree, Proj1{FqFieldElem}[], StrategiesDim1Three[ExponentOfThree])
-    a24chl, _ = Montgomery_normalize(a24chl, Proj1{FqFieldElem}[])
+    a24chl, image_check = three_e_iso(a24pk, xKchl, ExponentOfThree, [xQ3pk], StrategiesDim1Three[ExponentOfThree])
+    a24chl, image_check = Montgomery_normalize(a24chl, image_check)
 
     # compute Echl_d
     if e_dim1 > 0
@@ -263,8 +263,8 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
         else
             xKchl_d = ladder3pt(coeff_ker_dim1, xP2chl, xQ2chl, xPQ2chl, a24chl)
         end
-        a24chl_d, _ = two_e_iso(a24chl, xKchl_d, e_dim1, Proj1{FqFieldElem}[])
-        a24chl_d, _ = Montgomery_normalize(a24chl_d, Proj1{FqFieldElem}[])
+        a24chl_d, image_check = two_e_iso(a24chl, xKchl_d, e_dim1, image_check)
+        a24chl_d, image_check = Montgomery_normalize(a24chl_d, image_check)
     else
         a24chl_d = a24chl
     end
@@ -301,18 +301,24 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     K1 = CouplePoint(xP2chl_d, xP2aux)
     K2 = CouplePoint(xQ2chl_d, xQ2aux)
     K12 = CouplePoint(xPQ2chl_d, xPQ2aux)
+    O = infinity_point(global_data.Fp2)
+    eval_point = [CouplePoint(image_check[1], O)]
     if e_dim2_torsion > e_dim2
-        Es, _ = product_isogeny(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
+        Es, image_dim2 = product_isogeny(a24chl_d, a24aux, K1, K2, K12, eval_point, e_dim2, StrategiesDim2[e_dim2])
     else
-        Es, _ = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
+        Es, image_dim2 = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, eval_point, e_dim2, StrategiesDim2[e_dim2])
     end
 
     # check
-    for E in Es
-        a24 = A_to_a24(E)
-        a24, _ = Montgomery_normalize(a24, Proj1{FqFieldElem}[])
+    for i in 1:2
+        a24 = A_to_a24(Es[i])
+        a24, image_check = Montgomery_normalize(a24, [image_dim2[1][i]])
         A = Montgomery_coeff(a24)
-        challenge(A, m) == chl && return true
+        xP3check = image_check[1]
+        if challenge(A, m) == chl
+            @assert is_infinity(xTPLe(xP3check, a24_to_a24pm(a24), ExponentOfThree))
+            return !is_infinity(xTPLe(xP3check, a24_to_a24pm(a24), ExponentOfThree - 1))
+        end
     end
     return false
 end
