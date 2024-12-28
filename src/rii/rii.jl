@@ -101,6 +101,16 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     @assert check_degree_by_pairing_2power(a24, a24d, x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo, two_to_e_dim2 - d)
 
     x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[4][idx], images[5][idx], images[6][idx]
+    
+    # check
+    wn, wd = Weil_pairing_odd(affine(a24), affine(x_hatrho_P3e_d), 1/affine(x_hatrho_P3e_d), affine(x_hatrho_Q3e_d), 1/affine(x_hatrho_Q3e_d), affine(x_hatrho_PQ3e_d), 1/affine(x_hatrho_PQ3e_d), three_to_e3)
+    w_m = wn/wd
+    wn, wd = Weil_pairing_odd(affine(a24d), affine(xP3e_d), 1/affine(xP3e_d), affine(xQ3e_d), 1/affine(xQ3e_d), affine(xPQ3e_d), 1/affine(xPQ3e_d), three_to_e3)
+    w_d = wn/wd
+    @assert w_m^three_to_e3 == 1
+    @assert w_d^three_to_e3 == 1
+    @assert w_m == w_d^(two_to_e_dim2 - d)
+
     x_tau_K = images[7][idx]
     @assert is_infinity(ladder(three_to_e3, x_hatrho_P3e_d, a24))
     @assert is_infinity(ladder(three_to_e3, x_hatrho_Q3e_d, a24))

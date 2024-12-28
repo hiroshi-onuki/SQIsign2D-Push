@@ -1,4 +1,5 @@
-export PairingData, Weil_pairing_2power, check_degree_by_pairing_2power, multi_Weil_pairing_2power
+export PairingData, Weil_pairing_2power, check_degree_by_pairing_2power, multi_Weil_pairing_2power,
+    Weil_pairing_odd
 
 """
 The following algorithms are based on the paper:
@@ -48,31 +49,59 @@ function CubicalLadderDbl(a24::T, e::Int, XPQ::T, ZPQ::T, XP::T, ZP::T, XQinv::T
     return XnP, ZnP, XnPQ, ZnPQ
 end
 
-# return X + T, where T is a point of order 2
-function CubicalTranslate(XP::T, ZP::T, XT::T, ZT::T) where T <: RingElem
-    X = XP*XT - ZP*ZT
-    Z = XP*ZT - ZP*XT
-    TX == 0 && return -X, Z
-    return X, Z
+# return [n]P and [n]P + Q
+function CubicalLadder(a24::T, n::BigInt, XPQ::T, XPQinv::T, XP::T, XPinv::T, XQinv::T) where T <: RingElem
+    F = parent(a24)
+    XnP, ZnP = XP, F(1)
+    Xn1P, Zn1P = CubicalDbl(a24, XP, F(1))
+    Xn1PQ, Zn1PQ = CubicalDiffAdd(a24, XPQ, F(1), XP, F(1), XQinv)
+
+    t = (n - 1) >> 1
+    b = BigInt(1)
+    while t != 1
+        t >>= 1
+        b <<= 1 
+    end
+
+    while b != 0
+        if (n - 1) & b == 0
+            Xn1PQ, Zn1PQ = CubicalDiffAdd(a24, Xn1PQ, Zn1PQ, XnP, ZnP, XPQinv)
+            Xn1P, Zn1P = CubicalDiffAdd(a24, Xn1P, Zn1P, XnP, ZnP, XPinv)
+            XnP, ZnP = CubicalDbl(a24, XnP, ZnP)
+        else
+            XnP, ZnP = CubicalDiffAdd(a24, Xn1P, Zn1P, XnP, ZnP, XPinv)
+            Xn1PQ, Zn1PQ = CubicalDiffAdd(a24, Xn1PQ, Zn1PQ, Xn1P, Zn1P, XQinv)
+            Xn1P, Zn1P = CubicalDbl(a24, Xn1P, Zn1P)
+        end
+        b >>= 1
+    end
+    return Xn1P, Zn1P, Xn1PQ, Zn1PQ
 end
 
-# return (num, den) s.t. num/den = g_{P, Q}, the biextension element above P, Q
+# return (num, den) s.t. num/den = g_{P, Q}, the biextension element above P, Q in E[2^e]
 function Monodromy(a24::T, e::Int, XP::T, XQinv::T, XPQ::T) where T <: RingElem
     F = parent(a24)
     XnP, ZnP, XnPQ, ZnPQ = CubicalLadderDbl(a24, e - 1, XPQ, F(1), XP, F(1), XQinv)
-    num = XnPQ * ZnP - ZnPQ * XnP
     if XnP == 0
-        den = ZnP^2
+        return XnPQ * ZnP, ZnP^2
     else
-        den = XnP^2 - ZnP^2
+        return XnPQ * ZnP - ZnPQ * XnP, XnP^2 - ZnP^2
     end
-    return num, den
 end
 
 # the 2^e-Weil pairing of P, Q, where XPQ is x(P - Q)
 function Weil_pairing_2power(a24::T, XP::T, XPinv::T, XQ::T, XQinv::T, XPQ::T, e::Int) where T <: RingElem
     lamPn, lamPd = Monodromy(a24, e, XP, XQinv, XPQ)
     lamQn, lamQd = Monodromy(a24, e, XQ, XPinv, XPQ)
+    return lamPd * lamQn, lamPn * lamQd
+end
+
+# return e_{2n}(P, Q) = e_n(P, Q)^2 for P, Q in E[n], where XPQ is x(P - Q)
+function Weil_pairing_odd(a24::T, XP::T, XPinv::T, XQ::T, XQinv::T, XPQ::T, XPQinv::T, n::BigInt) where T <: RingElem
+    XO, _, _, ZQd = CubicalLadder(a24, n, XPQ, XPQinv, XP, XPinv, XQinv)
+    lamPn, lamPd = ZQd, XO
+    XO, _, _, ZPd = CubicalLadder(a24, n, XPQ, XPQinv, XQ, XQinv, XPinv)
+    lamQn, lamQd = ZPd, XO
     return lamPd * lamQn, lamPn * lamQd
 end
 
