@@ -91,20 +91,14 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     idx = 1
     a24 = A_to_a24(Es[idx])
     x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
-
-    w0 = Weil_pairing_2power(Montgomery_coeff(a24d), xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo)
-    w0n, w0d = Weil_pairing_2power(affine(a24d), affine(xP2e_d), 1/affine(xP2e_d), affine(xQ2e_d), 1/affine(xQ2e_d), affine(xPQ2e_d), ExponentOfTwo)
-    @assert w0 == w0n/w0d
-    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, ExponentOfTwo)
-    if w1 != w0^(two_to_e_dim2 - d)
+    if !check_degree_by_pairing_2power(a24, a24d, x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo, two_to_e_dim2 - d)
         idx = 2
     end
     a24 = A_to_a24(Es[idx])
 
     # check
     x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
-    w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, ExponentOfTwo)
-    @assert w1 == w0^(two_to_e_dim2 - d)
+    @assert check_degree_by_pairing_2power(a24, a24d, x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo, two_to_e_dim2 - d)
 
     x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[4][idx], images[5][idx], images[6][idx]
     x_tau_K = images[7][idx]
@@ -203,17 +197,14 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, xK1::Proj1{T}, xK2::Proj1{T},
     idx = 1
     a24mm = A_to_a24(Es[idx])
     xP2mm, xQ2mm, xPQ2mm = images[1][idx], images[2][idx], images[3][idx]
-    w_m = Weil_pairing_2power(Montgomery_coeff(a24m), xP2m, xQ2m, xPQ2m, ExponentOfTwo)
-    w_mm = Weil_pairing_2power(affine(Es[idx]), xP2mm, xQ2mm, xPQ2mm, ExponentOfTwo)
-    if w_mm != w_m^d
+    if !check_degree_by_pairing_2power(a24mm, a24m, xP2mm, xQ2mm, xPQ2mm, xP2m, xQ2m, xPQ2m, ExponentOfTwo, d)
         idx = 2
     end
     a24mm = A_to_a24(Es[idx])
     xP2mm, xQ2mm, xPQ2mm, xK2mm = images[1][idx], images[2][idx], images[3][idx], images[4][idx]
 
     # check
-    w_mm = Weil_pairing_2power(affine(Es[idx]), xP2mm, xQ2mm, xPQ2mm, ExponentOfTwo)
-    @assert w_mm == w_m^d
+    @assert check_degree_by_pairing_2power(a24mm, a24m, xP2mm, xQ2mm, xPQ2mm, xP2m, xQ2m, xPQ2m, ExponentOfTwo, d)
 
     a24aux, images = three_e_iso(a24mm, xK2mm, ExponentOfThree, [xP2mm, xQ2mm, xPQ2mm], StrategiesDim1Three[ExponentOfThree])
     xP2aux, xQ2aux, xPQ2aux = images

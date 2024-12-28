@@ -6,26 +6,6 @@ struct DlogData
     strategy::Vector{Int}
 end
 
-struct OrderData
-    d::Int
-    A::FqFieldElem
-    j_inv::FqFieldElem
-    a24_0::Proj1{FqFieldElem}
-    xP2e::Proj1{FqFieldElem}
-    xQ2e::Proj1{FqFieldElem}
-    xPQ2e::Proj1{FqFieldElem}
-    xP2e_id2iso_d2::Proj1{FqFieldElem}
-    xQ2e_id2iso_d2::Proj1{FqFieldElem}
-    xPQ2e_id2iso_d2::Proj1{FqFieldElem}
-    I::LeftIdeal
-    M::Matrix{BigInt}
-    connecting_deg::BigInt
-    M_sqrt_d::Matrix{BigInt}
-    tate_tableP::Vector{Vector{FqFieldElem}}
-    tate_tableQ::Vector{Vector{FqFieldElem}}
-    dlog_base::BigInt
-end
-
 struct BasisData
     xP::Proj1{FqFieldElem}
     xQ::Proj1{FqFieldElem}
@@ -42,7 +22,6 @@ struct E0Data
     Matrices_2e::Vector{Matrix{BigInt}}
     Matrices_3e::Vector{Matrix{BigInt}}
     M44inv_chall::Matrix{BigInt}
-    dlog_data::DlogData
 end
 
 # structure for precomputed values

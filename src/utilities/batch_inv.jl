@@ -1,3 +1,5 @@
+export batched_inversion
+
 """
 Given k values, compute the inverse using
 3(k-1) multiplications and one inversion

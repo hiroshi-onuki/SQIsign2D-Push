@@ -75,14 +75,7 @@ function make_E0_data()
     Matrices_2e = [M_i_2e, M_ij_2e, M_1k_2e]
     Matrices_3e = [M_i_3e, M_ij_3e, M_1k_3e]
 
-    # precomputed values for discrete logarithm
-    window_size = 3
-    w = Weil_pairing_2power(A0, P2e, Q2e, ExponentOfTwo)
-    fq_dlog_table1, fq_dlog_table2 = make_dlog_table(w, ExponentOfTwo, window_size)
-    strategy_dlog = compute_strategy(div(ExponentOfTwo, window_size) - 1, window_size, 1)
-    dlog_data = DlogData(ExponentOfTwo, window_size, fq_dlog_table1, fq_dlog_table2, strategy_dlog)
-
-    return Fp2, E0Data(A0, a24_0, jInvariant_A(A0), basis2e3e, basis2e, basis3e, Matrices_2e, Matrices_3e, M44inv_chall, dlog_data)
+    return Fp2, E0Data(A0, a24_0, jInvariant_A(A0), basis2e3e, basis2e, basis3e, Matrices_2e, Matrices_3e, M44inv_chall)
 end
 
 # Fp2 and values in Fp2
