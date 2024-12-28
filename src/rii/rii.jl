@@ -1,31 +1,9 @@
-
-# return the codomain of a random d-isogeny from E0 and the images of the basis points
-function RandIsogImages(d::BigInt, global_data::GlobalData, compute_odd_points::Bool=false)
-    deg_dim2 = BigInt(1) << ExponentSum
-    E0_data = global_data.E0_data
-    a24_0 = E0_data.a24_0
-    xP0, xQ0, xPQ0 = E0_data.xP2e, E0_data.xQ2e, E0_data.xPQ2e
-    xP0 = xDBLe(xP0, a24_0, ExponentFull - ExponentSum)
-    xQ0 = xDBLe(xQ0, a24_0, ExponentFull - ExponentSum)
-    xPQ0 = xDBLe(xPQ0, a24_0, ExponentFull - ExponentSum)
-
-    alpha, _ = FullRepresentInteger(d*(deg_dim2 - d))
-
-    a24, xP, xQ, xPQ, odd_images = d2isogeny_form_Esquare(a24_0, d, alpha, xP0, xQ0, xPQ0, global_data, compute_odd_points)
-    if compute_odd_points
-        return a24, xP, xQ, xPQ, odd_images, LeftIdeal(alpha, d)
-    else
-        return a24, xP, xQ, xPQ, LeftIdeal(alpha, d)
-    end
-end
-
 # input: odd integer d s.t. 2^e_dim2 - d is not divisible by 3, a point xK in E0 of order 3^e3
 # output: the codomain of a random (d(2^e2 - d))-isogeny f, [c]f(xK),
 #    and [d^{-1}](f(P2e), f(Q2e)), where c in some integer not divisible by 3
 function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::GlobalData) where T <: RingElem
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
-    xP0, xQ0, xPQ0 = E0_data.basis2e3e.xP, E0_data.basis2e3e.xQ, E0_data.basis2e3e.xPQ
     xP2e, xQ2e, xPQ2e = E0_data.basis2e.xP, E0_data.basis2e.xQ, E0_data.basis2e.xPQ
     xP3e, xQ3e, xPQ3e = E0_data.basis3e.xP, E0_data.basis3e.xQ, E0_data.basis3e.xPQ
     two_to_e_dim2 = BigInt(1) << e_dim2

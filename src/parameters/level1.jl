@@ -1,6 +1,5 @@
 include("level1/prime.jl")
 include("level1/constants.jl")
-include("level1/precomputed_order_data.jl")
 
 include("../quaternion/order.jl")
 include("../quaternion/cornacchia.jl")
@@ -8,12 +7,9 @@ include("../quaternion/ideal.jl")
 include("../quaternion/klpt.jl")
 
 include("global_data.jl")
-include("order_data.jl")
 
 include("../elliptic_curves/dlog.jl")
-include("../ideal_to_isogeny/ideal_to_isogeny.jl")
 include("../rii/quat_action.jl")
-include("../rii/d2isogeny.jl")
 include("../rii/rii.jl")
 include("../double_path/double_path.jl")
 include("../utilities/for_compression.jl")
@@ -75,7 +71,7 @@ function make_E0_data()
     Matrices_2e = [M_i_2e, M_ij_2e, M_1k_2e]
     Matrices_3e = [M_i_3e, M_ij_3e, M_1k_3e]
 
-    return Fp2, E0Data(A0, a24_0, jInvariant_A(A0), basis2e3e, basis2e, basis3e, Matrices_2e, Matrices_3e, M44inv_chall)
+    return Fp2, E0Data(A0, a24_0, basis2e, basis3e, Matrices_2e, Matrices_3e, M44inv_chall)
 end
 
 # Fp2 and values in Fp2

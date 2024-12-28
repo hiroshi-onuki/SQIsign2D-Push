@@ -15,8 +15,6 @@ end
 struct E0Data
     A0::FqFieldElem
     a24_0::Proj1{FqFieldElem}
-    j0::FqFieldElem
-    basis2e3e::BasisData
     basis2e::BasisData
     basis3e::BasisData
     Matrices_2e::Vector{Matrix{BigInt}}
