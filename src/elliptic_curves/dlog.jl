@@ -84,3 +84,9 @@ function fp2_dlog(x::FqFieldElem, base::FqFieldElem, l::Int, e::Int)
         return n + BigInt(l)^ed * fp2_dlog(x, base, l, e - ed)
     end
 end
+
+function ec_bi_dlog(a24::Proj1{T}, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T},
+        xPb::Proj1{T}, xQb::Proj1{T}, xPQb::Proj1{T}, l::Int, e::Int) where T <: RingElem
+        
+    return 0, 0, 0, 0
+end
