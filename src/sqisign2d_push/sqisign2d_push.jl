@@ -289,7 +289,7 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     w_chl = w_chl_prj.X .* w_chl_Zinv
     w_aux = w_aux_prj.X .* w_aux_Zinv
     two_to_e_dim2 = BigInt(1) << e_dim2
-    c = two_to_e_dim2 - (fq_dlog_power_of_2(w_chl, w_aux, e_dim2_torsion) % two_to_e_dim2)
+    c = two_to_e_dim2 - (fp2_dlog(w_chl, w_aux, 2, e_dim2_torsion) % two_to_e_dim2)
     c = sqrt_mod_2power(c, e_dim2)
     if is_adjust_sqrt == 1
         c = (c + (two_to_e_dim2 >> 1)) % two_to_e_dim2

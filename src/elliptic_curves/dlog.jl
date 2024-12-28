@@ -1,26 +1,4 @@
-export ec_bi_dlog_odd_prime_power, fq_dlog_power_of_2
-
-# x^(2^e)
-function square_e(x::FqFieldElem, e::Int)
-    y = x
-    for i in 1:e
-        y = y^2
-    end
-    return y
-end
-
-# return n such that x = base^e
-function fq_dlog_power_of_2(x::FqFieldElem, base::FqFieldElem, e::Integer)
-    n = BigInt(0)
-    t = x
-    for i in 1:e
-        if t^(BigInt(2)^(e-i)) == base^(BigInt(2)^(e-1))
-            n += BigInt(2)^(i-1)
-            t //= square_e(base, i-1)
-        end
-    end
-    return n
-end
+export ec_bi_dlog_odd_prime_power, fp2_dlog
 
 function bi_dlog_odd_prime(A::T, P::Point{T}, R::Point{T}, S::Point{T}, l::Int) where T <: RingElem
     Pd = infinity_full_point(parent(A))
@@ -97,12 +75,12 @@ function fp2_dlog(x::FqFieldElem, base::FqFieldElem, l::Int, e::Int)
         error("No discrete logarithm found")
     else
         # Recursive case: reduce the problem to a smaller instance
-        ed = div(e, 2)
-        led = l^ed
+        ed = Int(ceil(e//2))
         x2 = x^(BigInt(l)^(e - ed))
         base2 = base^(BigInt(l)^(e - ed))
         n = fp2_dlog(x2, base2, l, ed)
         x = x * base^(-n)
-        return n + led * fp2_dlog(x, base, l, ed)
+        base = base2^(BigInt(l)^(2*ed - e))
+        return n + BigInt(l)^ed * fp2_dlog(x, base, l, e - ed)
     end
 end
