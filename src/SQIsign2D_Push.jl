@@ -13,6 +13,7 @@ include("elliptic_curves/full_point.jl")
 include("elliptic_curves/pairing.jl")
 include("elliptic_curves/montgomery.jl")
 include("elliptic_curves/couple_point.jl")
+include("elliptic_curves/dlog.jl")
 
 include("theta/theta_structure_dim1.jl")
 include("theta/theta_structure_dim2.jl")

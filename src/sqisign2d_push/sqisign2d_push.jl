@@ -73,7 +73,6 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
 
     # compute (q', e_dim1, e_dim2) s.t. q = q' * 2^e_dim1 and q' < 2^e_dim2
     e_dim1 = valuation(q, 2)
-    println("e_dim1: ", e_dim1)
     two_to_e_dim1 = BigInt(1) << e_dim1
     qd = q >> e_dim1
     e_dim2 = 0

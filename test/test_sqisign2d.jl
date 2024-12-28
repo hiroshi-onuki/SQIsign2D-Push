@@ -4,11 +4,12 @@ function check(param::Module, num::Int)
     global_data = param.make_precomputed_values()
     for i in 1:num
         println("test $i start")
-        pk, sk = param.key_gen(global_data)
+        @time pk, sk = param.key_gen(global_data)
         m = "message to sign"
-        sign = param.signing(pk, sk, m, global_data)
+        @time sign = param.signing(pk, sk, m, global_data)
         println("sign len: ", length(sign))
-        @assert param.verify(pk, sign, m, global_data)
+        @time verified = param.verify(pk, sign, m, global_data)
+        @assert verified
     end
 end
 

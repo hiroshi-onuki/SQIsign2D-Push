@@ -8,7 +8,6 @@ include("../quaternion/klpt.jl")
 
 include("global_data.jl")
 
-include("../elliptic_curves/dlog.jl")
 include("../rii/quat_action.jl")
 include("../rii/rii.jl")
 include("../double_path/double_path.jl")
