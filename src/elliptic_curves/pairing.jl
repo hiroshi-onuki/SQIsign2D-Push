@@ -1,5 +1,5 @@
 export PairingData, Weil_pairing_2power, check_degree_by_pairing_2power, multi_Weil_pairing_2power,
-    Weil_pairing_odd
+    Weil_pairing_odd, check_degree_by_pairing_odd, multi_Weil_pairing_odd
 
 """
 The following algorithms are based on the paper:
@@ -105,18 +105,6 @@ function Weil_pairing_odd(a24::T, XP::T, XPinv::T, XQ::T, XQinv::T, XPQ::T, XPQi
     return lamPd * lamQn, lamPn * lamQd
 end
 
-# return whether e_{2^e}(P1, Q1) = e_{2^e}(P2, Q2)^d
-function check_degree_by_pairing_2power(a24_1::Proj1{T}, a24_2::Proj1{T},
-        xP1::Proj1{T}, xQ1::Proj1{T}, xPQ1::Proj1{T}, xP2::Proj1{T},
-        xQ2::Proj1{T}, xPQ2::Proj1{T}, e::Int, d::BigInt) where T <: RingElem
-
-    pd1 = PairingData(a24_1, xP1, xQ1, xPQ1)
-    pd2 = PairingData(a24_2, xP2, xQ2, xPQ2)
-    ws = multi_Weil_pairing_2power([pd1, pd2], e)
-
-    return ws[1].X * ws[2].Z^d == ws[1].Z * ws[2].X^d
-end
-
 # return Weil pairings
 function multi_Weil_pairing_2power(data::Vector{PairingData}, e::Int)
     elements_for_inv = FqFieldElem[]
@@ -143,5 +131,58 @@ function multi_Weil_pairing_2power(data::Vector{PairingData}, e::Int)
         ret[i] = Proj1(wn, wd)
     end
     return ret
+end
+
+# return Weil pairings
+function multi_Weil_pairing_odd(data::Vector{PairingData}, n::BigInt)
+    elements_for_inv = FqFieldElem[]
+    for pdata in data
+        push!(elements_for_inv, pdata.a24.Z)
+        push!(elements_for_inv, pdata.xP.X)
+        push!(elements_for_inv, pdata.xP.Z)
+        push!(elements_for_inv, pdata.xQ.X)
+        push!(elements_for_inv, pdata.xQ.Z)
+        push!(elements_for_inv, pdata.xPQ.X)
+        push!(elements_for_inv, pdata.xPQ.Z)
+    end
+    inv_elements = batched_inversion(elements_for_inv)
+
+    ret = Vector{Proj1{FqFieldElem}}(undef, length(data))
+    for i in 1:length(data)
+        a24af = data[i].a24.X * inv_elements[7*(i-1)+1]
+        XP = data[i].xP.X * inv_elements[7*(i-1)+3]
+        XPinv = data[i].xP.Z * inv_elements[7*(i-1)+2]
+        XQ = data[i].xQ.X * inv_elements[7*(i-1)+5]
+        XQinv = data[i].xQ.Z * inv_elements[7*(i-1)+4]
+        XPQ = data[i].xPQ.X * inv_elements[7*(i-1)+7]
+        XPQinv = data[i].xPQ.Z * inv_elements[7*(i-1)+6]
+        wn, wd = Weil_pairing_odd(a24af, XP, XPinv, XQ, XQinv, XPQ, XPQinv, n)
+        ret[i] = Proj1(wn, wd)
+    end
+    return ret
+end
+
+# return whether e_{2^e}(P1, Q1) = e_{2^e}(P2, Q2)^d
+function check_degree_by_pairing_2power(a24_1::Proj1{T}, a24_2::Proj1{T},
+    xP1::Proj1{T}, xQ1::Proj1{T}, xPQ1::Proj1{T}, xP2::Proj1{T},
+    xQ2::Proj1{T}, xPQ2::Proj1{T}, e::Int, d::BigInt) where T <: RingElem
+
+    pd1 = PairingData(a24_1, xP1, xQ1, xPQ1)
+    pd2 = PairingData(a24_2, xP2, xQ2, xPQ2)
+    ws = multi_Weil_pairing_2power([pd1, pd2], e)
+
+    return ws[1].X * ws[2].Z^d == ws[1].Z * ws[2].X^d
+end
+
+# return whether e_n(P1, Q1) = e_n(P2, Q2)^d
+function check_degree_by_pairing_odd(a24_1::Proj1{T}, a24_2::Proj1{T},
+    xP1::Proj1{T}, xQ1::Proj1{T}, xPQ1::Proj1{T}, xP2::Proj1{T},
+    xQ2::Proj1{T}, xPQ2::Proj1{T}, n::BigInt, d::BigInt) where T <: RingElem
+
+    pd1 = PairingData(a24_1, xP1, xQ1, xPQ1)
+    pd2 = PairingData(a24_2, xP2, xQ2, xPQ2)
+    ws = multi_Weil_pairing_odd([pd1, pd2], n)
+
+    return ws[1].X * ws[2].Z^d == ws[1].Z * ws[2].X^d
 end
 

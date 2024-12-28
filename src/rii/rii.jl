@@ -30,6 +30,10 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     xP3e, xQ3e, xPQ3e = E0_data.basis3e.xP, E0_data.basis3e.xQ, E0_data.basis3e.xPQ
     two_to_e_dim2 = BigInt(1) << e_dim2
 
+    # To distinguish the image of the dim2 isogeny by the 3^e3-Weil pairing,
+    # we require d neq 2^e_dim2 - d mod 3^e3
+    @assert (2*d - two_to_e_dim2) % three_to_e3 != 0
+
     # alpha in End(E0) s.t. n(alpha) = d*(2^e2 - d)*3^e3
     # we decompose alpha = hat(phi)*hat(rho)*tau, where deg(phi) = 3^e3, deg(rho) = 2^e2 - d, deg(tau) = d
     alpha = Quaternion_0
@@ -50,15 +54,12 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     O = infinity_point(global_data.Fp2)
     xP2e_d, xQ2e_d, xPQ2e_d = torsion_basis(a24d, ExponentOfTwo)
     xP3e_d, xQ3e_d, xPQ3e_d = torsion_basis(a24d, 3, ExponentOfThree)
-    OP2e_d = CouplePoint(O, xP2e_d)
-    OQ2e_d = CouplePoint(O, xQ2e_d)
-    OPQ2e_d = CouplePoint(O, xPQ2e_d)
     OP3e_d = CouplePoint(O, xP3e_d)
     OQ3e_d = CouplePoint(O, xQ3e_d)
     OPQ3e_d = CouplePoint(O, xPQ3e_d)
     KO = CouplePoint(xK, O)
 
-    eval_points = [OP2e_d, OQ2e_d, OPQ2e_d, OP3e_d, OQ3e_d, OPQ3e_d, KO]
+    eval_points = [OP3e_d, OQ3e_d, OPQ3e_d, KO]
 
     # (2^e_dim2, 2^e_dim2)-isogeny
     # the kernel of the (2^e_dim2, 2^e_dim2)-isogeny is [2^(e2 - e_dim2)]<(P2e, Pd), (Q2e, Qd)>
@@ -90,17 +91,13 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
 
     idx = 1
     a24 = A_to_a24(Es[idx])
-    x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
-    if !check_degree_by_pairing_2power(a24, a24d, x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo, two_to_e_dim2 - d)
+    x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[1][idx], images[2][idx], images[3][idx]
+
+    if !check_degree_by_pairing_odd(a24, a24d, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, xP3e_d, xQ3e_d, xPQ3e_d, three_to_e3, two_to_e_dim2 - d)
         idx = 2
     end
     a24 = A_to_a24(Es[idx])
-
-    # check
-    x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
-    @assert check_degree_by_pairing_2power(a24, a24d, x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo, two_to_e_dim2 - d)
-
-    x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[4][idx], images[5][idx], images[6][idx]
+    x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[1][idx], images[2][idx], images[3][idx]
     
     # check
     wn, wd = Weil_pairing_odd(affine(a24), affine(x_hatrho_P3e_d), 1/affine(x_hatrho_P3e_d), affine(x_hatrho_Q3e_d), 1/affine(x_hatrho_Q3e_d), affine(x_hatrho_PQ3e_d), 1/affine(x_hatrho_PQ3e_d), three_to_e3)
@@ -111,7 +108,7 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     @assert w_d^three_to_e3 == 1
     @assert w_m == w_d^(two_to_e_dim2 - d)
 
-    x_tau_K = images[7][idx]
+    x_tau_K = images[4][idx]
     @assert is_infinity(ladder(three_to_e3, x_hatrho_P3e_d, a24))
     @assert is_infinity(ladder(three_to_e3, x_hatrho_Q3e_d, a24))
     @assert is_infinity(ladder(three_to_e3, x_hatrho_PQ3e_d, a24))
