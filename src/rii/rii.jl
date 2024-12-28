@@ -93,6 +93,8 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d = images[1][idx], images[2][idx], images[3][idx]
 
     w0 = Weil_pairing_2power(Montgomery_coeff(a24d), xP2e_d, xQ2e_d, xPQ2e_d, ExponentOfTwo)
+    w0n, w0d = Weil_pairing_2power(affine(a24d), affine(xP2e_d), 1/affine(xP2e_d), affine(xQ2e_d), 1/affine(xQ2e_d), affine(xPQ2e_d), ExponentOfTwo)
+    @assert w0 == w0n/w0d
     w1 = Weil_pairing_2power(affine(Es[idx]), x_hatrho_P2e_d, x_hatrho_Q2e_d, x_hatrho_PQ2e_d, ExponentOfTwo)
     if w1 != w0^(two_to_e_dim2 - d)
         idx = 2

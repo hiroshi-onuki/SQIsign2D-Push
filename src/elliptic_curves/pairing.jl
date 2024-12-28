@@ -122,3 +122,72 @@ function Tate_pairing_iP0(P::Point{FqFieldElem}, table::Vector{Vector{FqFieldEle
     f0 = f0^f
     return f0
 end
+
+"""
+The following algorithms are based on the paper:
+D. Robert, "Fast pairings via biextensions and cubical arithmetic
+Preliminary"
+https://eprint.iacr.org/2024/517.pdf
+"""
+
+# return [2](X, Z)
+function CubicalDbl(a24::T, X::T, Z::T) where T <: RingElem
+    a = (X + Z)^2
+    b = (X - Z)^2
+    c = a - b
+    X2 = a * b
+    Z2 = c * (b + a24 * c)
+    return X2, Z2
+end
+
+# return P + Q
+function CubicalDiffAdd(a24::T, XP::T, ZP::T, XQ::T, ZQ::T, PmQXinv::T) where T <: RingElem
+    a = XP + ZP
+    b = XP - ZP
+    c = XQ + ZQ
+    d = XQ - ZQ
+    a *= d
+    b *= c
+    X2 = (a + b)^2 * PmQXinv
+    Z2 = (a - b)^2
+    return X2, Z2
+end
+
+# return [2^e]P and [2^e]P + Q
+function CubicalLadderDbl(a24::T, e::Int, XPQ::T, ZPQ::T, XP::T, ZP::T, XQinv::T) where T <: RingElem
+    XnPQ, ZnPQ = XPQ, ZPQ
+    XnP, ZnP = XP, ZP
+    for i in 1:e
+        XnPQ, ZnPQ = CubicalDiffAdd(a24, XnPQ, ZnPQ, XnP, ZnP, XQinv)
+        XnP, ZnP = CubicalDbl(a24, XnP, ZnP)
+    end
+    return XnP, ZnP, XnPQ, ZnPQ
+end
+
+# return X + T, where T is a point of order 2
+function CubicalTranslate(XP::T, ZP::T, XT::T, ZT::T) where T <: RingElem
+    X = XP*XT - ZP*ZT
+    Z = XP*ZT - ZP*XT
+    TX == 0 && return -X, Z
+    return X, Z
+end
+
+# return (num, den) s.t. num/den = g_{P, Q}, the biextension element above P, Q
+function Monodromy(a24::T, e::Int, XP::T, XQinv::T, XPQ::T) where T <: RingElem
+    F = parent(a24)
+    XnP, ZnP, XnPQ, ZnPQ = CubicalLadderDbl(a24, e - 1, XPQ, F(1), XP, F(1), XQinv)
+    num = XnPQ * ZnP - ZnPQ * XnP
+    if XnP == 0
+        den = ZnP^2
+    else
+        den = XnP^2 - ZnP^2
+    end
+    return num, den
+end
+
+# the 2^e-Weil pairing of P, Q, where XPQ is x(P - Q)
+function Weil_pairing_2power(a24::T, XP::T, XPinv::T, XQ::T, XQinv::T, XPQ::T, e::Int) where T <: RingElem
+    lamPn, lamPd = Monodromy(a24, e, XP, XQinv, XPQ)
+    lamQn, lamQd = Monodromy(a24, e, XQ, XPinv, XPQ)
+    return lamPd * lamQn, lamPn * lamQd
+end
