@@ -13,4 +13,4 @@ function check(param::Module, num::Int)
     end
 end
 
-check(SQIsign2D_Push.Level1, 100)
+check(SQIsign2D_Push.Level3, 100)
