@@ -109,6 +109,33 @@ function add(P::Point{T}, Q::Point{T}, A::Proj1{T}) where T <: RingElem
     return Point(X3 * U, Y3, Z3)
 end
 
+function add_xonly(P::Point{T}, Q::Point{T}, A::Proj1{T}) where T <: RingElem
+    P.Z == 0 && return Proj1(Q.X, Q.Z)
+    Q.Z == 0 && return Proj1(P.X, P.Z)
+    X1, Y1, Z1 = P.X, P.Y, P.Z
+    X2, Y2, Z2 = Q.X, Q.Y, Q.Z
+    X1Z2 = X1 * Z2
+    X2Z1 = X2 * Z1
+    Y1Z2 = Y1 * Z2
+    Y2Z1 = Y2 * Z1
+    if X1Z2 == X2Z1
+        if Y1Z2 == Y2Z1
+            return xDBL(Proj1(P.X, P.Z), A_to_a24(A))
+        else
+            F = parent(A.X)
+            return infinity_point(F)
+        end
+    end
+    U = X2Z1 - X1Z2
+    V = Y2Z1 - Y1Z2
+    ZZ = Z1 * Z2
+    W = ZZ * A.Z
+    U2 = U^2
+    X3 = V^2 * W - U2 * (A.X * ZZ + X1Z2 * A.Z + X2Z1 * A.Z)
+    Z3 = U2 * W
+    return Proj1(X3, Z3)
+end
+
 function mult(m::Integer, P::Point{T}, A::Proj1{T}) where T <: RingElem
     m < 0 && return -mult(-m, P, A)
     F = parent(A.X)

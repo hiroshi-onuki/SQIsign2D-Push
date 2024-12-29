@@ -16,7 +16,7 @@ function key_gen(global_data::GlobalData)
 
     xP3pk_fix, xQ3pk_fix, xPQ3pk_fix = torsion_basis(a24pk, 3, ExponentOfThree)
 
-    n1, n2, n3, n4 = ec_bi_dlog_odd_prime_power(Apk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, xP3pk, xQ3pk, xPQ3pk, 3, ExponentOfThree)
+    n1, n2, n3, n4 = ec_bi_dlog(a24pk, BasisData(xP3pk_fix, xQ3pk_fix, xPQ3pk_fix), BasisData(xP3pk, xQ3pk, xPQ3pk), 3, ExponentOfThree)
     M = [n1 n3; n2 n4]
  
     return Apk, (xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M, J3, J2, alpha)
@@ -88,8 +88,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         xP2chl_short = xDBLe(xP2chl, a24chl, ExponentOfTwo - e_dim1)
         xQ2chl_short = xDBLe(xQ2chl, a24chl, ExponentOfTwo - e_dim1)
         xPQ2chl_short = xDBLe(xPQ2chl, a24chl, ExponentOfTwo - e_dim1)
-        n1, n2, n3, n4 = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24chl), xP2chl_short, xQ2chl_short, xPQ2chl_short, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, 2, e_dim1)
-        ec_bi_dlog(a24chl, BasisData(xP2chl_short, xQ2chl_short, xPQ2chl_short), BasisData(xP2chl_fix, xQ2chl_fix, xPQ2chl_fix), 2, e_dim1)
+        n1, n2, n3, n4 = ec_bi_dlog(a24chl, BasisData(xP2chl_short, xQ2chl_short, xPQ2chl_short), BasisData(xP2chl_fix, xQ2chl_fix, xPQ2chl_fix), 2, e_dim1)
         M = [n1 n3; n2 n4]
         @assert xP2chl_short == linear_comb_2_e(n1, n2, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, e_dim1)
         @assert xQ2chl_short == linear_comb_2_e(n3, n4, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, e_dim1)
@@ -135,7 +134,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
 
     xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix = torsion_basis(a24chl_d, e_dim2_torsion)
-    n1, n2, n3, n4 = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24chl_d), xP2chl_d, xQ2chl_d, xPQ2chl_d, xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix, 2, e_dim2_torsion)
+    n1, n2, n3, n4 = ec_bi_dlog(a24chl_d, BasisData(xP2chl_d, xQ2chl_d, xPQ2chl_d), BasisData(xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix), 2, e_dim2_torsion)
     Mchl_d = [n1 n3; n2 n4]
 
     # compute an auxiliary isogeny
@@ -153,7 +152,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xP2aux_fix, xQ2aux_fix, xPQ2aux_fix = torsion_basis(a24aux, e_dim2_torsion)
-    n1, n2, n3, n4 = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24aux), xP2aux, xQ2aux, xPQ2aux, xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, 2, e_dim2_torsion)
+    n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, e_dim2_torsion)
     Maux = [n1 n3; n2 n4]
     two_to_e_dim2_torsion = BigInt(1) << e_dim2_torsion
     M = (Maux * invmod_2x2(Mchl_d, two_to_e_dim2_torsion)) .% two_to_e_dim2_torsion
