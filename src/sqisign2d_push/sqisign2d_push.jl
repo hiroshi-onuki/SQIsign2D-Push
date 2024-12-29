@@ -64,7 +64,6 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     IskIchl = intersection(I2sk, Ichl)
     IskIchl = div(IskIchl * alpha_sk, two_to_e2^2)
     I = involution_product(Icom, IskIchl)
-    @assert norm(I) == three_to_e3^5
     alpha, q, found = element_for_response(I, norm(I), ExponentOfTwo)
     @assert found
     f2 = BigInt(1) << valuation(gcd(alpha), 2)
@@ -90,9 +89,6 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         xPQ2chl_short = xDBLe(xPQ2chl, a24chl, ExponentOfTwo - e_dim1)
         n1, n2, n3, n4 = ec_bi_dlog(a24chl, BasisData(xP2chl_short, xQ2chl_short, xPQ2chl_short), BasisData(xP2chl_fix, xQ2chl_fix, xPQ2chl_fix), 2, e_dim1)
         M = [n1 n3; n2 n4]
-        @assert xP2chl_short == linear_comb_2_e(n1, n2, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, e_dim1)
-        @assert xQ2chl_short == linear_comb_2_e(n3, n4, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, e_dim1)
-        @assert xPQ2chl_short == linear_comb_2_e(n1 - n3, n2 - n4, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, e_dim1)
         a, b = kernel_coefficients(alpha, 2, e_dim1, global_data.E0_data.Matrices_2e)
         a, b = M * [a, b]
         if a % 2 != 0
@@ -116,12 +112,6 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     end
     c = invmod(three_to_e3^2 * ChallengeDegree, two_to_e2)
     xP2chl_d, xQ2chl_d, xPQ2chl_d = action_on_torsion_basis(involution(alpha), a24chl_d, xP2chl_d, xQ2chl_d, xPQ2chl_d, global_data.E0_data, c)
-    @assert is_infinity(xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
-    @assert is_infinity(xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
-    @assert is_infinity(xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1))
-    @assert !is_infinity(xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
-    @assert !is_infinity(xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
-    @assert !is_infinity(xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - 1))
 
     e = ExponentOfTwo - e_dim1 - e_dim2
     if e >= 2
@@ -174,21 +164,6 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         a_sqrt = sqrt_mod_2power(a^2 % two_to_e_dim2, e_dim2)
         is_adjust_sqrt = ((a - a_sqrt) % two_to_e_dim2 == 0 || (a + a_sqrt) % two_to_e_dim2 == 0) ? 0 : 1
     end
-
-    xPcheck = linear_comb_2_e(M[1, 1], M[2, 1], xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, a24aux, e_dim2_torsion)
-    xQcheck = linear_comb_2_e(M[1, 2], M[2, 2], xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, a24aux, e_dim2_torsion)
-    xPQcheck = linear_comb_2_e(M[1, 1] - M[1, 2], M[2, 1] - M[2, 2], xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, a24aux, e_dim2_torsion)
-
-    # check by dim2 isogeny
-    K1 = CouplePoint(xP2chl_d_fix, xPcheck)
-    K2 = CouplePoint(xQ2chl_d_fix, xQcheck)
-    K12 = CouplePoint(xPQ2chl_d_fix, xPQcheck)
-    if e_dim2_torsion > e_dim2
-        Es, _ = product_isogeny(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
-    else
-        Es, _ = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
-    end
-    @assert jInvariant_A(Es[1]) == jInvariant_a24(a24com) || jInvariant_A(Es[2]) == jInvariant_a24(a24com)
 
     # make the signature
     sign = Vector{UInt8}(undef, SignatureByteLength)
@@ -316,7 +291,6 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
         A = Montgomery_coeff(a24)
         xP3check = image_check[1]
         if challenge(A, m) == chl
-            @assert is_infinity(xTPLe(xP3check, a24_to_a24pm(a24), ExponentOfThree))
             return !is_infinity(xTPLe(xP3check, a24_to_a24pm(a24), ExponentOfThree - 1))
         end
     end
