@@ -20,14 +20,32 @@ function Point(X::T, Y::T) where T <: RingElem
     return Point(X, Y, F(1))
 end
 
-function Point(A::T, XZ::Proj1{T}) where T <: RingElem
+function Point(A::Proj1{T}, XZ::Proj1{T}) where T <: RingElem
     X, Z = XZ.X, XZ.Z
     XZ = X*Z
     Z2 = Z^2
-    Y = square_root(XZ*(X^2 + A*XZ + Z2))
-    X = XZ
-    Z = Z2
+    Y = square_root(XZ*A.Z*(X^2*A.Z + A.X*XZ + Z2*A.Z))
+    X = XZ * A.Z
+    Z = Z2 * A.Z
     return Point(X, Y, Z)
+end
+
+# return full points for P and Q.
+# from Corollary 1 in "Efficient Elliptic Curve Cryptosystems from a Scalar Multiplication Algorithm with Recovery of the y-Coordinate on a Montgomery-Form Elliptic Curve"
+function Recover_y_from_basis(A::Proj1{FqFieldElem}, basis::BasisData)
+    xP, xQ, xPQ = basis.xP, basis.xQ, basis.xPQ
+    P = Point(A, xP)
+
+    y2ZZ = P.Y * xQ.Z * xPQ.Z * A.Z
+    y2ZZ += y2ZZ
+    A2Z = A.X * xQ.Z
+    A2Z += A2Z
+
+    X = y2ZZ * xQ.X * P.Z
+    Y = -xPQ.Z * (((xQ.X * A.Z + A2Z)*P.Z + P.X * xQ.Z * A.Z) * (P.X * xQ.X + P.Z * xQ.Z) - A2Z * xQ.Z * P.Z^2) + (P.Z * xQ.X - P.X * xQ.Z)^2 * xPQ.X * A.Z
+    Z = y2ZZ * xQ.Z * P.Z
+
+    return P, Point(X, Y, Z)
 end
 
 function is_infinity(P::Point{T}) where T <: RingElem

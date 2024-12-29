@@ -1,11 +1,6 @@
-struct DlogData
-    e::Int
-    window_size::Int
-    T1::Vector{Vector{FqFieldElem}}
-    T2::Vector{Vector{FqFieldElem}}
-    strategy::Vector{Int}
-end
+export BasisData, E0Data, GlobalData
 
+# x(P), x(Q), x(P-Q)
 struct BasisData
     xP::Proj1{FqFieldElem}
     xQ::Proj1{FqFieldElem}

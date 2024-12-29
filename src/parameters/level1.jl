@@ -6,8 +6,6 @@ include("../quaternion/cornacchia.jl")
 include("../quaternion/ideal.jl")
 include("../quaternion/klpt.jl")
 
-include("global_data.jl")
-
 include("../rii/quat_action.jl")
 include("../rii/rii.jl")
 include("../double_path/double_path.jl")

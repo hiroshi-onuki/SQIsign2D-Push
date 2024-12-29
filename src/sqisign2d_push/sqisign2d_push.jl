@@ -89,6 +89,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
         xQ2chl_short = xDBLe(xQ2chl, a24chl, ExponentOfTwo - e_dim1)
         xPQ2chl_short = xDBLe(xPQ2chl, a24chl, ExponentOfTwo - e_dim1)
         n1, n2, n3, n4 = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24chl), xP2chl_short, xQ2chl_short, xPQ2chl_short, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, 2, e_dim1)
+        ec_bi_dlog(a24chl, BasisData(xP2chl_short, xQ2chl_short, xPQ2chl_short), BasisData(xP2chl_fix, xQ2chl_fix, xPQ2chl_fix), 2, e_dim1)
         M = [n1 n3; n2 n4]
         @assert xP2chl_short == linear_comb_2_e(n1, n2, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, e_dim1)
         @assert xQ2chl_short == linear_comb_2_e(n3, n4, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, a24chl, e_dim1)

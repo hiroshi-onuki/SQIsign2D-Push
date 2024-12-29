@@ -1,6 +1,7 @@
 module SQIsign2D_Push
 using Nemo
 
+
 include("utilities/integer.jl")
 include("utilities/finite_field.jl")
 include("utilities/batch_inv.jl")
@@ -9,6 +10,7 @@ include("utilities/strategy.jl")
 include("utilities/matrix.jl")
 
 include("elliptic_curves/proj1.jl")
+include("parameters/global_data.jl")
 include("elliptic_curves/full_point.jl")
 include("elliptic_curves/pairing.jl")
 include("elliptic_curves/montgomery.jl")
