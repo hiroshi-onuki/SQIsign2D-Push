@@ -37,5 +37,5 @@ function benchmark_test(param::Module, num::Int)
     print("\n")
 end
 
-num = 10
+num = 100
 benchmark_test(SQIsign2D_Push.Level1, num)

@@ -30,7 +30,6 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
 
     # points to be evaluated by the isogeny
     O = infinity_point(global_data.Fp2)
-    xP2e_d, xQ2e_d, xPQ2e_d = torsion_basis(a24d, ExponentOfTwo)
     xP3e_d, xQ3e_d, xPQ3e_d = torsion_basis(a24d, 3, ExponentOfThree)
     OP3e_d = CouplePoint(O, xP3e_d)
     OQ3e_d = CouplePoint(O, xQ3e_d)
@@ -76,24 +75,8 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     end
     a24 = A_to_a24(Es[idx])
     x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[1][idx], images[2][idx], images[3][idx]
-    
-    # check
-    wn, wd = Weil_pairing_odd(affine(a24), affine(x_hatrho_P3e_d), 1/affine(x_hatrho_P3e_d), affine(x_hatrho_Q3e_d), 1/affine(x_hatrho_Q3e_d), affine(x_hatrho_PQ3e_d), 1/affine(x_hatrho_PQ3e_d), three_to_e3)
-    w_m = wn/wd
-    wn, wd = Weil_pairing_odd(affine(a24d), affine(xP3e_d), 1/affine(xP3e_d), affine(xQ3e_d), 1/affine(xQ3e_d), affine(xPQ3e_d), 1/affine(xPQ3e_d), three_to_e3)
-    w_d = wn/wd
-    @assert w_m^three_to_e3 == 1
-    @assert w_d^three_to_e3 == 1
-    @assert w_m == w_d^(two_to_e_dim2 - d)
-
     x_tau_K = images[4][idx]
-    @assert is_infinity(ladder(three_to_e3, x_hatrho_P3e_d, a24))
-    @assert is_infinity(ladder(three_to_e3, x_hatrho_Q3e_d, a24))
-    @assert is_infinity(ladder(three_to_e3, x_hatrho_PQ3e_d, a24))
-    @assert is_infinity(ladder(three_to_e3, x_tau_K, a24))
-    @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_P3e_d, a24))
-    @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_Q3e_d, a24))
-    @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_PQ3e_d, a24))
+
     u, v = ec_bi_dlog_one_point(a24, x_tau_K, BasisData(x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d), 3, ExponentOfThree)
     if u == 1
         xKd = ladder3pt(v, xP3e_d, xQ3e_d, xPQ3e_d, a24d)
@@ -174,9 +157,6 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, xK1::Proj1{T}, xK2::Proj1{T},
     end
     a24mm = A_to_a24(Es[idx])
     xP2mm, xQ2mm, xPQ2mm, xK2mm = images[1][idx], images[2][idx], images[3][idx], images[4][idx]
-
-    # check
-    @assert check_degree_by_pairing_2power(a24mm, a24m, xP2mm, xQ2mm, xPQ2mm, xP2m, xQ2m, xPQ2m, ExponentOfTwo, d)
 
     a24aux, images = three_e_iso(a24mm, xK2mm, ExponentOfThree, [xP2mm, xQ2mm, xPQ2mm], StrategiesDim1Three[ExponentOfThree])
     xP2aux, xQ2aux, xPQ2aux = images
