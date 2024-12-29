@@ -246,7 +246,6 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     idx += 1
     coeff_ker_dim2_isP = sign[idx] >> 1
     is_adjust_sqrt = sign[idx] & 1
-    println("e_dim2 = ", e_dim2, ", e_dim1 = ", e_dim1)
 
     # compute Echl
     xP3pk, xQ3pk, xPQ3pk = torsion_basis(a24pk, 3, ExponentOfThree)
