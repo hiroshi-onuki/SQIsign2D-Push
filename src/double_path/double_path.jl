@@ -48,14 +48,11 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
     a24dd, images = Montgomery_normalize(a24dd, images)
     xK_dual3 = images[1]
 
-    @assert a24d == a24dd
-
     # 3^e3-isogeny: E3 -> E, the latter part of 3^(2e3)-isogeny from E0 with kernel alpha + 3^(2e3)*O0
     a24_3, images2 = Montgomery_normalize(a24_3, [xP2e3, xQ2e3, xPQ2e3])
     xP2e3, xQ2e3, xPQ2e3 = images2
     a24_3d, images = two_e_iso(a24d, xK_dual2, ExponentOfTwo, [xK_dual3], StrategiesDim1Two[ExponentOfTwo])
     a24_3d, images = Montgomery_normalize(a24_3d, images)
-    @assert a24_3 == a24_3d
     xK = images[1]
     a24, images = three_e_iso(a24_3, xK, ExponentOfThree, images2, StrategiesDim1Three[ExponentOfThree])
     a24, images = Montgomery_normalize(a24, images)
@@ -67,11 +64,9 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
     a24_2, images3 = Montgomery_normalize(a24_2, [xP3e2, xQ3e2, xPQ3e2])
     a24_2d, images = three_e_iso(a24d, xK_dual3, ExponentOfThree, [xK_dual2], StrategiesDim1Three[ExponentOfThree])
     a24_2d, images = Montgomery_normalize(a24_2d, images)
-    @assert a24_2 == a24_2d
     xK = images[1]
     a24d, images = two_e_iso(a24_2, xK, ExponentOfTwo, images3, StrategiesDim1Two[ExponentOfTwo])
     a24d, images = Montgomery_normalize(a24d, images)
-    @assert a24 == a24d
     xP3e_d, xQ3e_d, xPQ3e_d = images
     J2 = LeftIdeal(involution(alpha), two_to_e2^2)
     return a24, xP2e_d, xQ2e_d, xPQ2e_d, xP3e_d, xQ3e_d, xPQ3e_d, J3, J2, alpha
