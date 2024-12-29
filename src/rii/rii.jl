@@ -70,7 +70,7 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     a24 = A_to_a24(Es[idx])
     x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d = images[1][idx], images[2][idx], images[3][idx]
 
-    if !check_degree_by_pairing_odd(a24, a24d, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, xP3e_d, xQ3e_d, xPQ3e_d, three_to_e3, two_to_e_dim2 - d)
+    if !check_degree_by_pairing(a24, a24d, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, xP3e_d, xQ3e_d, xPQ3e_d, 3, ExponentOfThree, two_to_e_dim2 - d)
         idx = 2
     end
     a24 = A_to_a24(Es[idx])
@@ -152,7 +152,7 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, xK1::Proj1{T}, xK2::Proj1{T},
     idx = 1
     a24mm = A_to_a24(Es[idx])
     xP2mm, xQ2mm, xPQ2mm = images[1][idx], images[2][idx], images[3][idx]
-    if !check_degree_by_pairing_2power(a24mm, a24m, xP2mm, xQ2mm, xPQ2mm, xP2m, xQ2m, xPQ2m, ExponentOfTwo, d)
+    if !check_degree_by_pairing(a24mm, a24m, xP2mm, xQ2mm, xPQ2mm, xP2m, xQ2m, xPQ2m, 2, ExponentOfTwo, d)
         idx = 2
     end
     a24mm = A_to_a24(Es[idx])

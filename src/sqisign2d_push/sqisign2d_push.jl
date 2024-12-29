@@ -258,10 +258,10 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     end
 
     # adjust by scalar multiplication
-    w_chl_prj, w_aux_prj = multi_Weil_pairing_2power([PairingData(a24chl_d, xP2chl_d, xQ2chl_d, xPQ2chl_d), PairingData(a24aux, xP2aux, xQ2aux, xPQ2aux)], e_dim2_torsion)
-    w_chl_Zinv, w_aux_Zinv = batched_inversion([w_chl_prj.Z, w_aux_prj.Z])
-    w_chl = w_chl_prj.X .* w_chl_Zinv
-    w_aux = w_aux_prj.X .* w_aux_Zinv
+    w_chl_n, w_chl_d, w_aux_n, w_aux_d = two_Weil_pairings_2power(a24chl_d, a24aux, xP2chl_d, xQ2chl_d, xPQ2chl_d, xP2aux, xQ2aux, xPQ2aux, e_dim2_torsion)
+    w_chl_d, w_aux_d = batched_inversion([w_chl_d, w_aux_d])
+    w_chl = w_chl_n * w_chl_d
+    w_aux = w_aux_n * w_aux_d
     two_to_e_dim2 = BigInt(1) << e_dim2
     c = two_to_e_dim2 - (fp2_dlog(w_chl, w_aux, 2, e_dim2_torsion) % two_to_e_dim2)
     c = sqrt_mod_2power(c, e_dim2)

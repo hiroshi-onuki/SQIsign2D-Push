@@ -1,5 +1,4 @@
-export PairingData, Weil_pairing_2power, check_degree_by_pairing_2power, multi_Weil_pairing_2power,
-    Weil_pairing_odd, check_degree_by_pairing_odd, multi_Weil_pairing_odd
+export Weil_pairing_2power, check_degree_by_pairing, two_Weil_pairings_2power, Weil_pairing_odd
 
 """
 The following algorithms are based on the paper:
@@ -7,13 +6,6 @@ D. Robert, "Fast pairings via biextensions and cubical arithmetic
 Preliminary"
 https://eprint.iacr.org/2024/517.pdf
 """
-
-struct PairingData
-    a24::Proj1{FqFieldElem}
-    xP::Proj1{FqFieldElem}
-    xQ::Proj1{FqFieldElem}
-    xPQ::Proj1{FqFieldElem}
-end
 
 # return [2](X, Z)
 function CubicalDbl(a24::T, X::T, Z::T) where T <: RingElem
@@ -105,61 +97,78 @@ function Weil_pairing_odd(a24::T, XP::T, XPinv::T, XQ::T, XQinv::T, XPQ::T, XPQi
     return lamPd * lamQn, lamPn * lamQd
 end
 
-# return Weil pairings
-function multi_Weil_pairing_2power(data::Vector{PairingData}, e::Int)
-    elements_for_inv = FqFieldElem[]
-    for pdata in data
-        push!(elements_for_inv, pdata.a24.Z)
-        push!(elements_for_inv, pdata.xP.X)
-        push!(elements_for_inv, pdata.xP.Z)
-        push!(elements_for_inv, pdata.xQ.X)
-        push!(elements_for_inv, pdata.xQ.Z)
-        push!(elements_for_inv, pdata.xPQ.Z)
-    end
-    inv_elements = batched_inversion(elements_for_inv)
+# return two Weil pairings
+function two_Weil_pairings_2power(a24_1::Proj1{T}, a24_2::Proj1{T},
+    xP1::Proj1{T}, xQ1::Proj1{T}, xPQ1::Proj1{T}, xP2::Proj1{T},
+    xQ2::Proj1{T}, xPQ2::Proj1{T}, e::Int) where T <: RingElem
 
-    n = length(data)
-    ret = Vector{Proj1{FqFieldElem}}(undef, n)
-    for i in 1:n
-        a24af = data[i].a24.X * inv_elements[6*(i-1)+1]
-        XP = data[i].xP.X * inv_elements[6*(i-1)+3]
-        XPinv = data[i].xP.Z * inv_elements[6*(i-1)+2]
-        XQ = data[i].xQ.X * inv_elements[6*(i-1)+5]
-        XQinv = data[i].xQ.Z * inv_elements[6*(i-1)+4]
-        XPQ = data[i].xPQ.X * inv_elements[6*(i-1)+6]
-        wn, wd = Weil_pairing_2power(a24af, XP, XPinv, XQ, XQinv, XPQ, e)
-        ret[i] = Proj1(wn, wd)
-    end
-    return ret
+    # compute affine points
+    elements_for_inv = FqFieldElem[a24_1.Z, a24_2.Z,
+                                    xP1.X, xP1.Z, xQ1.X, xQ1.Z, xPQ1.Z,
+                                    xP2.X, xP2.Z, xQ2.X, xQ2.Z, xPQ2.Z
+                                    ]
+    inv_elements = batched_inversion(elements_for_inv)
+    a24_1_af = a24_1.X * inv_elements[1]
+    a24_2_af = a24_2.X * inv_elements[2]
+    xP1_af = xP1.X * inv_elements[4]
+    xP1_inv = xP1.Z * inv_elements[3]
+    xQ1_af = xQ1.X * inv_elements[6]
+    xQ1_inv = xQ1.Z * inv_elements[5]
+    xPQ1_af = xPQ1.X * inv_elements[7]
+    xP2_af = xP2.X * inv_elements[9]
+    xP2_inv = xP2.Z * inv_elements[8]
+    xQ2_af = xQ2.X * inv_elements[11]
+    xQ2_inv = xQ2.Z * inv_elements[10]
+    xPQ2_af = xPQ2.X * inv_elements[12]
+
+    # compute Weil pairings
+    w1n, w1d = Weil_pairing_2power(a24_1_af, xP1_af, xP1_inv, xQ1_af, xQ1_inv, xPQ1_af, e)
+    w2n, w2d = Weil_pairing_2power(a24_2_af, xP2_af, xP2_inv, xQ2_af, xQ2_inv, xPQ2_af, e)
+
+    return w1n, w1d, w2n, w2d
 end
 
-# return Weil pairings
-function multi_Weil_pairing_odd(data::Vector{PairingData}, n::BigInt)
-    elements_for_inv = FqFieldElem[]
-    for pdata in data
-        push!(elements_for_inv, pdata.a24.Z)
-        push!(elements_for_inv, pdata.xP.X)
-        push!(elements_for_inv, pdata.xP.Z)
-        push!(elements_for_inv, pdata.xQ.X)
-        push!(elements_for_inv, pdata.xQ.Z)
-        push!(elements_for_inv, pdata.xPQ.X)
-        push!(elements_for_inv, pdata.xPQ.Z)
+# return whether e_{2^e}(P1, Q1) = e_{2^e}(P2, Q2)^d
+function check_degree_by_pairing(a24_1::Proj1{T}, a24_2::Proj1{T},
+    xP1::Proj1{T}, xQ1::Proj1{T}, xPQ1::Proj1{T}, xP2::Proj1{T},
+    xQ2::Proj1{T}, xPQ2::Proj1{T}, l::Int, e::Int, d::BigInt) where T <: RingElem
+
+    # compute affine points
+    elements_for_inv = [a24_1.Z, a24_2.Z, xP1.X, xP1.Z, xQ1.X, xQ1.Z, xPQ1.Z,
+        xP2.X, xP2.Z, xQ2.X, xQ2.Z, xPQ2.Z]
+    if l != 2
+        push!(elements_for_inv, xPQ1.X)
+        push!(elements_for_inv, xPQ2.X)
     end
     inv_elements = batched_inversion(elements_for_inv)
-
-    ret = Vector{Proj1{FqFieldElem}}(undef, length(data))
-    for i in 1:length(data)
-        a24af = data[i].a24.X * inv_elements[7*(i-1)+1]
-        XP = data[i].xP.X * inv_elements[7*(i-1)+3]
-        XPinv = data[i].xP.Z * inv_elements[7*(i-1)+2]
-        XQ = data[i].xQ.X * inv_elements[7*(i-1)+5]
-        XQinv = data[i].xQ.Z * inv_elements[7*(i-1)+4]
-        XPQ = data[i].xPQ.X * inv_elements[7*(i-1)+7]
-        XPQinv = data[i].xPQ.Z * inv_elements[7*(i-1)+6]
-        wn, wd = Weil_pairing_odd(a24af, XP, XPinv, XQ, XQinv, XPQ, XPQinv, n)
-        ret[i] = Proj1(wn, wd)
+    a24_1_af = a24_1.X * inv_elements[1]
+    a24_2_af = a24_2.X * inv_elements[2]
+    xP1_af = xP1.X * inv_elements[4]
+    xP1_inv = xP1.Z * inv_elements[3]
+    xQ1_af = xQ1.X * inv_elements[6]
+    xQ1_inv = xQ1.Z * inv_elements[5]
+    xPQ1_af = xPQ1.X * inv_elements[7]
+    xP2_af = xP2.X * inv_elements[9]
+    xP2_inv = xP2.Z * inv_elements[8]
+    xQ2_af = xQ2.X * inv_elements[11]
+    xQ2_inv = xQ2.Z * inv_elements[10]
+    xPQ2_af = xPQ2.X * inv_elements[12]
+    if l != 2
+        xPQ1_inv = xPQ1.Z * inv_elements[13]
+        xPQ2_inv = xPQ2.Z * inv_elements[14]
     end
-    return ret
+
+    # compute Weil pairings
+    if l == 2
+        w1n, w1d = Weil_pairing_2power(a24_1_af, xP1_af, xP1_inv, xQ1_af, xQ1_inv, xPQ1_af, e)
+        w2n, w2d = Weil_pairing_2power(a24_2_af, xP2_af, xP2_inv, xQ2_af, xQ2_inv, xPQ2_af, e)
+    else
+        n = BigInt(l)^e
+        w1n, w1d = Weil_pairing_odd(a24_1_af, xP1_af, xP1_inv, xQ1_af, xQ1_inv, xPQ1_af, xPQ1_inv, n)
+        w2n, w2d = Weil_pairing_odd(a24_2_af, xP2_af, xP2_inv, xQ2_af, xQ2_inv, xPQ2_af, xPQ2_inv, n)
+    end
+
+    return w1n * w2d^d == w1d * w2n^d
 end
 
 # return whether e_{2^e}(P1, Q1) = e_{2^e}(P2, Q2)^d
