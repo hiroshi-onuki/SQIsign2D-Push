@@ -1,64 +1,4 @@
-export ec_bi_dlog_odd_prime_power, fp2_dlog, ec_bi_dlog
-
-function bi_dlog_odd_prime(A::T, P::Point{T}, R::Point{T}, S::Point{T}, l::Int) where T <: RingElem
-    Pd = infinity_full_point(parent(A))
-    for a in 0:(l-1)
-        Pdd = Pd
-        for b in 0:(l-1)
-            if P == Pdd
-                return a, b
-            end
-            Pdd = add(Pdd, S, Proj1(A))
-        end
-        Pd = add(Pd, R, Proj1(A))
-    end
-    @assert false "bi_dlog_odd_prime: no solution"
-end
-
-function ec_bi_dlog_odd_prime_power(A::T, P::Point{T}, R::Point{T}, S::Point{T}, l::Int, e::Int) where T <: RingElem
-    e == 1 && return bi_dlog_odd_prime(A, P, R, S, l)
-    f = div(e, 2)
-    Pd = mult(BigInt(l)^(e - f), P, Proj1(A))
-    Rd = mult(BigInt(l)^(e - f), R, Proj1(A))
-    Sd = mult(BigInt(l)^(e - f), S, Proj1(A))
-    a, b = ec_bi_dlog_odd_prime_power(A, Pd, Rd, Sd, l, f)
-    aRbS = add(mult(a, R, Proj1(A)), mult(b, S, Proj1(A)), Proj1(A))
-    P = add(P, -aRbS, Proj1(A))
-    R = mult(BigInt(l)^f, R, Proj1(A))
-    S = mult(BigInt(l)^f, S, Proj1(A))
-    c, d = ec_bi_dlog_odd_prime_power(A, P, R, S, l, e - f)
-    return a + c * BigInt(l)^f, b + d * BigInt(l)^f
-end
-
-function ec_bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xQ::Proj1{T}, xPQ::Proj1{T}, xR::Proj1{T}, xS::Proj1{T}, xRS::Proj1{T}, l::Int, e::Int) where T <: RingElem
-    P = Point(Proj1(A), xP)
-    Q = Point(Proj1(A), xQ)
-    PQ = add(P, -Q, Proj1(A))
-    if !(xPQ == Proj1(PQ.X, PQ.Z))
-        Q = -Q
-    end
-    R = Point(Proj1(A), xR)
-    S = Point(Proj1(A), xS)
-    RS = add(R, -S, Proj1(A))
-    if !(xRS == Proj1(RS.X, RS.Z))
-        S = -S
-    end
-    a, b = ec_bi_dlog_odd_prime_power(A, P, R, S, l, e)
-    c, d = ec_bi_dlog_odd_prime_power(A, Q, R, S, l, e)
-    return a, b, c, d
-end
-
-function ec_bi_dlog_odd_prime_power(A::T, xP::Proj1{T}, xR::Proj1{T}, xS::Proj1{T}, xRS::Proj1{T}, l::Int, e::Int) where T <: RingElem
-    P = Point(Proj1(A), xP)
-    R = Point(Proj1(A), xR)
-    S = Point(Proj1(A), xS)
-    RS = add(R, -S, Proj1(A))
-    if !(xRS == Proj1(RS.X, RS.Z))
-        S = -S
-    end
-    a, b = ec_bi_dlog_odd_prime_power(A, P, R, S, l, e)
-    return a, b
-end
+export fp2_dlog, ec_bi_dlog, ec_bi_dlog_one_point
 
 # return n such that x = base^n where ord(base) = l^e
 # the method is recursive
@@ -110,7 +50,7 @@ function ec_bi_dlog(a24::Proj1{T}, b1::BasisData, b2::BasisData, l::Int, e::Int)
         return a, b, c, d
     end
 
-    xP1, xQ1, xPQ1 = b1.xP, b1.xQ, b1.xPQ
+    xP1, xQ1 = b1.xP, b1.xQ
     xP2, xQ2, xPQ2 = b2.xP, b2.xQ, b2.xPQ
     A = a24_to_A(a24)
 
@@ -268,4 +208,61 @@ function ec_bi_dlog(a24::Proj1{T}, b1::BasisData, b2::BasisData, l::Int, e::Int)
     end
 
     return b, n-a, d, n-c
+end
+
+# return (1, a) (resp. (a, 1)) s.t. [c]P = basis.P + [a]basis.Q (resp. [c]Q = basis.P + [a]basis.Q) for some c
+function ec_bi_dlog_one_point(a24::Proj1{T}, xP::Proj1{T}, basis::BasisData, l::Int, e::Int) where T <: RingElem
+    A = a24_to_A(a24)
+
+    # compute x(P - Pb), x(P - Qb)
+    P = Point(A, xP)
+    Pb, Qb = Recover_y_from_basis(A, basis)
+    if P == Pb
+        return 1, 0
+    elseif P == Qb
+        return 0, 1
+    end
+    xPPb = add_xonly(P, -Pb, A)
+    xPQb = add_xonly(P, -Qb, A)
+
+    # compute affine points
+    elements_for_inv = [a24.Z, xP.X, xP.Z, basis.xP.X, basis.xP.Z, basis.xQ.X, basis.xQ.Z, xPPb.Z, xPQb.Z]
+    if l != 2
+        push!(elements_for_inv, xPPb.X)
+        push!(elements_for_inv, xPQb.X)
+    end
+    inv_elements = batched_inversion(elements_for_inv)
+    a24af = a24.X * inv_elements[1]
+    xPaf = xP.X * inv_elements[3]
+    xPinv = xP.Z * inv_elements[2]
+    xPbaf = basis.xP.X * inv_elements[5]
+    xPbinv = basis.xP.Z * inv_elements[4]
+    xQbaf = basis.xQ.X * inv_elements[7]
+    xQbinv = basis.xQ.Z * inv_elements[6]
+    xPPbaf = xPPb.X * inv_elements[8]
+    xPQbaf = xPQb.X * inv_elements[9]
+    if l != 2
+        xPPbinv = xPPb.Z * inv_elements[10]
+        xPQbinv = xPQb.Z * inv_elements[11]
+    end
+
+    # compute Weil pairings
+    n = BigInt(l)^e
+    if l == 2
+        wPn, wPd = Weil_pairing_2power(a24af, xPaf, xPinv, xPbaf, xPbinv, xPPbaf, e)
+        wQn, wQd = Weil_pairing_2power(a24af, xPaf, xPinv, xQbaf, xQbinv, xPQbaf, e)
+    else
+        wPn, wPd = Weil_pairing_odd(a24af, xPaf, xPinv, xPbaf, xPbinv, xPPbaf, xPPbinv, n)
+        wQn, wQd = Weil_pairing_odd(a24af, xPaf, xPinv, xQbaf, xQbinv, xPQbaf, xPQbinv, n)
+    end
+    wPd, wQn = batched_inversion([wPd, wQn])
+    wP = wPn * wPd
+    wQ = wQn * wQd
+
+    if wP^div(n, l) == 1
+        return 1, fp2_dlog(wP, wQ, l, e)
+    else
+        return fp2_dlog(wQ, wP, l, e), 1
+    end
+
 end

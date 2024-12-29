@@ -94,24 +94,11 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_P3e_d, a24))
     @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_Q3e_d, a24))
     @assert !is_infinity(ladder(div(three_to_e3, 3), x_hatrho_PQ3e_d, a24))
-    u, v = ec_bi_dlog_odd_prime_power(Montgomery_coeff(a24), x_tau_K, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, 3, ExponentOfThree)
-    @assert u % 3 != 0 || v % 3 != 0
-    u < 0 && (u += three_to_e3)
-    v < 0 && (v += three_to_e3)
-    if u % 3 == 0
-        v_inv = invmod(v, three_to_e3)
-        xKd = ladder3pt(u * v_inv, xQ3e_d, xP3e_d, xPQ3e_d, a24d)
-
-        # check
-        x_tau_K = ladder(v_inv, x_tau_K, a24)
-        @assert x_tau_K == ladder3pt(u * v_inv, x_hatrho_Q3e_d, x_hatrho_P3e_d, x_hatrho_PQ3e_d, a24)
+    u, v = ec_bi_dlog_one_point(a24, x_tau_K, BasisData(x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d), 3, ExponentOfThree)
+    if u == 1
+        xKd = ladder3pt(v, xP3e_d, xQ3e_d, xPQ3e_d, a24d)
     else
-        u_inv = invmod(u, three_to_e3)
-        xKd = ladder3pt(v * u_inv, xP3e_d, xQ3e_d, xPQ3e_d, a24d)
-
-        # check
-        x_tau_K = ladder(u_inv, x_tau_K, a24)
-        @assert x_tau_K == ladder3pt(v * u_inv, x_hatrho_P3e_d, x_hatrho_Q3e_d, x_hatrho_PQ3e_d, a24)
+        xKd = ladder3pt(u, xQ3e_d, xP3e_d, xPQ3e_d, a24d)
     end
 
     return a24d, xKd, xPd, xQd, xPQd
