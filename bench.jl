@@ -39,3 +39,5 @@ end
 
 num = 100
 benchmark_test(SQIsign2D_Push.Level1, num)
+benchmark_test(SQIsign2D_Push.Level3, num)
+benchmark_test(SQIsign2D_Push.Level5, num)

@@ -1,21 +1,12 @@
 # basically the same as SQIsign reference implementation
-const KLPT_equiv_bound_coeff = 7
-const KLPT_equiv_num_iter = 50625
-const KLPT_gamma_exponent_center_shift = 15
 const KLPT_repres_num_gamma_trial = 32768
-const KLPT_signing_number_strong_approx = 6784
-const KLPT_secret_key_prime_size = 64
-const KLPT_keygen_num_gamma_trial = 64
-const KLPT_keygen_number_strong_approx = 5218
-const SQISIGN_challenge_length = 256
-const IdealToIsogeny_2_e_good_attempts = 1000
 
-const SQISIGN2D_commitment_degree = BigInt(3)^165
-const SQISIGN2D_commitment_degree_inv = invmod(SQISIGN2D_commitment_degree, BigInt(1) << ExponentForDim2)
-const SQISIGN2D_Fp2_length = 132
-const SQISIGN2D_2a_length = Int(ceil(ExponentForDim2/8))
-const SQISIGN2D_challenge_byte_length = Int(ceil(SQISIGN_challenge_length/8))
-const SQISIGN2D_signature_length = 2 * SQISIGN2D_Fp2_length + 3 * SQISIGN2D_2a_length + 1
-const CompactSQISIGN2D_signature_length = SQISIGN2D_Fp2_length + 3 * SQISIGN2D_2a_length + 2 * SQISIGN2D_challenge_byte_length + 3
+const ChallengeDegree = three_to_e3
+const ChallengeByteLength = Int(ceil(ceil(log(2, ChallengeDegree)) / 8))
+const Is256Hash = ChallengeByteLength <= 32
+const Dim2KernelCoeffByteLength = Int(ceil(ExponentOfTwo/8))
+const Fp2ByteLength = Int(ceil(Log2p/8)) * 2
+const DegreeExponentByteLength = Int(ceil(log(2, ExponentOfTwo)/8))
+const SignatureByteLength = Fp2ByteLength + 2*DegreeExponentByteLength + 3*Dim2KernelCoeffByteLength + 2 + ChallengeByteLength + 1
 
 const SmallPrimes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]
