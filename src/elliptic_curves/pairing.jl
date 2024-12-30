@@ -170,28 +170,3 @@ function check_degree_by_pairing(a24_1::Proj1{T}, a24_2::Proj1{T},
 
     return w1n * w2d^d == w1d * w2n^d
 end
-
-# return whether e_{2^e}(P1, Q1) = e_{2^e}(P2, Q2)^d
-function check_degree_by_pairing_2power(a24_1::Proj1{T}, a24_2::Proj1{T},
-    xP1::Proj1{T}, xQ1::Proj1{T}, xPQ1::Proj1{T}, xP2::Proj1{T},
-    xQ2::Proj1{T}, xPQ2::Proj1{T}, e::Int, d::BigInt) where T <: RingElem
-
-    pd1 = PairingData(a24_1, xP1, xQ1, xPQ1)
-    pd2 = PairingData(a24_2, xP2, xQ2, xPQ2)
-    ws = multi_Weil_pairing_2power([pd1, pd2], e)
-
-    return ws[1].X * ws[2].Z^d == ws[1].Z * ws[2].X^d
-end
-
-# return whether e_n(P1, Q1) = e_n(P2, Q2)^d
-function check_degree_by_pairing_odd(a24_1::Proj1{T}, a24_2::Proj1{T},
-    xP1::Proj1{T}, xQ1::Proj1{T}, xPQ1::Proj1{T}, xP2::Proj1{T},
-    xQ2::Proj1{T}, xPQ2::Proj1{T}, n::BigInt, d::BigInt) where T <: RingElem
-
-    pd1 = PairingData(a24_1, xP1, xQ1, xPQ1)
-    pd2 = PairingData(a24_2, xP2, xQ2, xPQ2)
-    ws = multi_Weil_pairing_odd([pd1, pd2], n)
-
-    return ws[1].X * ws[2].Z^d == ws[1].Z * ws[2].X^d
-end
-
