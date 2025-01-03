@@ -21,4 +21,6 @@ end
 struct GlobalData
     Fp2::FqField
     E0_data::E0Data
+    NSQs::Vector{FqFieldElem}
+    SQNSQs::Vector{FqFieldElem}
 end

@@ -75,5 +75,18 @@ end
 function make_precomputed_values()
     Fp2, E0 = make_E0_data()
 
-    return GlobalData(Fp2, E0)
+    i = gen(Fp2)
+    x = 2*i + 1
+    NSQs = FqFieldElem[]
+    SQNSQs = FqFieldElem[]
+    while length(NSQs) < NumOfNSQs || length(SQNSQs) < NumOfNSQs
+        if !is_square(x)
+            length(NSQs) < NumOfNSQs && push!(NSQs, x)
+        elseif !is_square(x - 1)
+            length(SQNSQs) < NumOfNSQs && push!(SQNSQs, x)
+        end
+        x += 1
+    end
+
+    return GlobalData(Fp2, E0, NSQs, SQNSQs)
 end
