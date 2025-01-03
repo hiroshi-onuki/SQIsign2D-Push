@@ -18,7 +18,7 @@ function key_gen(global_data::GlobalData)
 
     n1, n2, n3, n4 = ec_bi_dlog(a24pk, BasisData(xP3pk_fix, xQ3pk_fix, xPQ3pk_fix), BasisData(xP3pk, xQ3pk, xPQ3pk), 3, ExponentOfThree)
     M = [n1 n3; n2 n4]
- 
+
     return Apk, (xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M, J3, J2, alpha)
 end
 
@@ -123,7 +123,20 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
     xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
 
-    xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix = torsion_basis(a24chl_d, e_dim2_torsion)
+    @time xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix = torsion_basis(a24chl_d, e_dim2_torsion)
+    @time begin
+    xP, xQ, xPQ, _, _  = basis_2f(a24chl_d, ExponentOfTwo, global_data)
+    xP = xDBLe(xP, a24chl_d, ExponentOfTwo - e_dim2_torsion)
+    xQ = xDBLe(xQ, a24chl_d, ExponentOfTwo - e_dim2_torsion)
+    xPQ = xDBLe(xPQ, a24chl_d, ExponentOfTwo - e_dim2_torsion)
+    end
+    @assert is_infinity(xDBLe(xP, a24chl_d, e_dim2_torsion))
+    @assert is_infinity(xDBLe(xQ, a24chl_d, e_dim2_torsion))
+    @assert is_infinity(xDBLe(xPQ, a24chl_d, e_dim2_torsion))
+    @assert !is_infinity(xDBLe(xP, a24chl_d, e_dim2_torsion - 1))
+    @assert !is_infinity(xDBLe(xQ, a24chl_d, e_dim2_torsion - 1))
+    @assert !is_infinity(xDBLe(xPQ, a24chl_d, e_dim2_torsion - 1))
+    @assert xDBLe(xP, a24chl_d, e_dim2_torsion - 1) != xDBLe(xQ, a24chl_d, e_dim2_torsion - 1)
     n1, n2, n3, n4 = ec_bi_dlog(a24chl_d, BasisData(xP2chl_d, xQ2chl_d, xPQ2chl_d), BasisData(xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix), 2, e_dim2_torsion)
     Mchl_d = [n1 n3; n2 n4]
 

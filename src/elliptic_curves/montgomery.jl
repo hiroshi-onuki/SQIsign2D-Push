@@ -2,8 +2,7 @@ export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
     two_e_iso, three_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
-    Montgomery_normalize, complete_basis,
-    three_iso_curve, three_iso_eval # temporary!
+    Montgomery_normalize, complete_basis, basis_2f
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -785,6 +784,77 @@ function torsion_basis(a24::Proj1{T}, l::Int, e::Int) where T <: RingElem
     end
     return complete_basis(a24, P, Pd, x, l, e)
 end
+
+# root of x^2 + Ax + 1
+function compute_alpha(A::FqFieldElem)
+    d = square_root(A^2 - 4)
+    return (-A + d) / 2
+end
+
+function point_2f_above_montgomery(A::FqFieldElem, global_data::GlobalData)
+    hint = 1
+    i = gen(global_data.Fp2)
+    N = length(global_data.SQNSQs)
+    alpha = compute_alpha(A)
+    x = i
+    while true
+        if hint < N
+            x = global_data.SQNSQs[hint]
+        else
+            x = i + hint
+            if !is_square(x) || is_square(x - 1)
+                hint += 1
+                continue
+            end
+        end
+        x = x * alpha
+        is_square(x * (x^2 + A * x + 1)) && break
+        hint += 1
+    end
+
+    @assert hint < 1 << 8
+
+    return x, hint
+end
+
+function point_2f_not_above_montgomery(A::FqFieldElem, global_data::GlobalData)
+    hint = 1
+    i = gen(global_data.Fp2)
+    N = length(global_data.NSQs)
+    x = i
+    while true
+        if hint < N
+            x = global_data.NSQs[hint]
+        else
+            x = i + hint
+            if is_square(x)
+                hint += 1
+                continue
+            end
+        end
+        is_square(x * (x^2 + A * x + 1)) && break
+        hint += 1
+    end
+
+    @assert hint < 1 << 8
+
+    return x, hint
+end
+
+function basis_2f(a24::Proj1{T}, f::Int, global_data::GlobalData) where T <: RingElem
+    A = Montgomery_coeff(a24)
+    x1, hint1 = point_2f_above_montgomery(A, global_data)
+    x2, hint2 = point_2f_not_above_montgomery(A, global_data)
+
+    p = BigInt(characteristic(global_data.Fp2))
+    n = (p + 1) >> f
+    xP = ladder(n, Proj1(x1), a24)
+    xQ = ladder(n, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+    
+    return xP, xQ, xPQ, hint1, hint2
+end
+
 
 # isomorphism from Montgomery curve with a24 to Montgomery curve mapping P4 to (1, *)
 function isomorphism_Montgomery(a24::Proj1{T}, P4::Proj1{T}, Ps::Vector{Proj1{T}}) where T <: RingElem
