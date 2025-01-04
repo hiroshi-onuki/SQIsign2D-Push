@@ -125,7 +125,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
 
     @time xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix = torsion_basis(a24chl_d, e_dim2_torsion)
     @time begin
-    xP, xQ, xPQ, _, _  = basis_2f(a24chl_d, ExponentOfTwo, global_data)
+    xP, xQ, xPQ, hint1, hint2 = basis_2e(Montgomery_coeff(a24chl_d), CofactorWRT2, global_data)
     xP = xDBLe(xP, a24chl_d, ExponentOfTwo - e_dim2_torsion)
     xQ = xDBLe(xQ, a24chl_d, ExponentOfTwo - e_dim2_torsion)
     xPQ = xDBLe(xPQ, a24chl_d, ExponentOfTwo - e_dim2_torsion)
@@ -137,6 +137,16 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     @assert !is_infinity(xDBLe(xQ, a24chl_d, e_dim2_torsion - 1))
     @assert !is_infinity(xDBLe(xPQ, a24chl_d, e_dim2_torsion - 1))
     @assert xDBLe(xP, a24chl_d, e_dim2_torsion - 1) != xDBLe(xQ, a24chl_d, e_dim2_torsion - 1)
+    @time begin
+    xPtmp, xQtmp, xPQtmp = basis_2e_from_hint(Montgomery_coeff(a24chl_d), CofactorWRT2, hint1, hint2, global_data)
+    xPtmp = xDBLe(xPtmp, a24chl_d, ExponentOfTwo - e_dim2_torsion)
+    xQtmp = xDBLe(xQtmp, a24chl_d, ExponentOfTwo - e_dim2_torsion)
+    xPQtmp = xDBLe(xPQtmp, a24chl_d, ExponentOfTwo - e_dim2_torsion)
+    end
+    @assert xP == xPtmp
+    @assert xQ == xQtmp
+    @assert xPQ == xPQtmp
+
     n1, n2, n3, n4 = ec_bi_dlog(a24chl_d, BasisData(xP2chl_d, xQ2chl_d, xPQ2chl_d), BasisData(xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix), 2, e_dim2_torsion)
     Mchl_d = [n1 n3; n2 n4]
 

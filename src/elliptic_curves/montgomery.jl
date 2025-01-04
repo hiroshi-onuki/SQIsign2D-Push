@@ -2,7 +2,7 @@ export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
     two_e_iso, three_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
-    Montgomery_normalize, complete_basis, basis_2f
+    Montgomery_normalize, complete_basis, basis_2e, basis_2e_from_hint
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -791,7 +791,8 @@ function compute_alpha(A::FqFieldElem)
     return (-A + d) / 2
 end
 
-function point_2f_above_montgomery(A::FqFieldElem, global_data::GlobalData)
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is above (0, 0)
+function point_full2power_above_montgomery(A::FqFieldElem, global_data::GlobalData)
     hint = 1
     i = gen(global_data.Fp2)
     N = length(global_data.SQNSQs)
@@ -811,13 +812,15 @@ function point_2f_above_montgomery(A::FqFieldElem, global_data::GlobalData)
         is_square(x * (x^2 + A * x + 1)) && break
         hint += 1
     end
+    hint -= 1 # hint starts from 0
 
     @assert hint < 1 << 8
 
     return x, hint
 end
 
-function point_2f_not_above_montgomery(A::FqFieldElem, global_data::GlobalData)
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is not above (0, 0)
+function point_full2power_not_above_montgomery(A::FqFieldElem, global_data::GlobalData)
     hint = 1
     i = gen(global_data.Fp2)
     N = length(global_data.NSQs)
@@ -835,24 +838,69 @@ function point_2f_not_above_montgomery(A::FqFieldElem, global_data::GlobalData)
         is_square(x * (x^2 + A * x + 1)) && break
         hint += 1
     end
+    hint -= 1 # hint starts from 0
 
     @assert hint < 1 << 8
 
     return x, hint
 end
 
-function basis_2f(a24::Proj1{T}, f::Int, global_data::GlobalData) where T <: RingElem
-    A = Montgomery_coeff(a24)
-    x1, hint1 = point_2f_above_montgomery(A, global_data)
-    x2, hint2 = point_2f_not_above_montgomery(A, global_data)
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is above (0, 0)
+function point_full2power_above_montgomery_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
+    i = gen(global_data.Fp2)
+    N = length(global_data.SQNSQs)
+    alpha = compute_alpha(A)
+    hint += 1
 
-    p = BigInt(characteristic(global_data.Fp2))
-    n = (p + 1) >> f
-    xP = ladder(n, Proj1(x1), a24)
-    xQ = ladder(n, Proj1(x2), a24)
+    if hint < N
+        x = global_data.SQNSQs[hint]
+    else
+        x = i + hint
+    end
+    x = x * alpha
+
+    return x
+end
+
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is not above (0, 0)
+function point_full2power_not_above_montgomery_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
+    i = gen(global_data.Fp2)
+    N = length(global_data.NSQs)
+    hint += 1
+
+    if hint < N
+        x = global_data.NSQs[hint]
+    else
+        x = i + hint
+    end
+
+    return x
+end
+
+# return a basis of E[2^e]
+function basis_2e(A::FqFieldElem, cofactor::BigInt, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1, hint1 = point_full2power_above_montgomery(A, global_data)
+    x2, hint2 = point_full2power_not_above_montgomery(A, global_data)
+
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
     xPQ = x_add_sub(xP, xQ, a24)
     
     return xP, xQ, xPQ, hint1, hint2
+end
+
+# return a basis of E[2^e] from hint
+function basis_2e_from_hint(A::FqFieldElem, cofactor::BigInt, hint1::Int, hint2::Int, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1 = point_full2power_above_montgomery_from_hint(A, hint1, global_data)
+    x2 = point_full2power_not_above_montgomery_from_hint(A, hint2, global_data)
+
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+
+    return xP, xQ, xPQ
 end
 
 
