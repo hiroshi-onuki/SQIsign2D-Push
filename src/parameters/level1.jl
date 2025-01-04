@@ -88,5 +88,11 @@ function make_precomputed_values()
         x += 1
     end
 
-    return GlobalData(Fp2, E0, NSQs, SQNSQs)
+    u = NSQs[1]
+    Elligator2 = FqFieldElem[]
+    for r in 1:NumOfElligator2
+        push!(Elligator2, -1/(1 + u*r^2))
+    end
+
+    return GlobalData(Fp2, E0, NSQs, SQNSQs, Elligator2, u)
 end

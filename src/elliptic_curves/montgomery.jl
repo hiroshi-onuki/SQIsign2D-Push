@@ -2,7 +2,7 @@ export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
     two_e_iso, three_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
-    Montgomery_normalize, complete_basis, basis_2e, basis_2e_from_hint
+    Montgomery_normalize, complete_basis, basis_2e, basis_2e_from_hint, basis_3e
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -877,6 +877,101 @@ function point_full2power_not_above_montgomery_from_hint(A::FqFieldElem, hint::I
     return x
 end
 
+# compute lam, mu s.t. y - (lam * x + mu) is the tangent line at T on E_A
+function compute_lam_mu(A::FqFieldElem, xT::Proj1{FqFieldElem})
+    x3 = affine(xT)
+    y3 = square_root(x3 * (x3^2 + A*x3 + 1))
+    lam = (3*x3^2 + 2*A*x3 + 1) / (2*y3)
+    mu = y3 - lam * x3
+    return lam, mu
+end
+
+function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, global_data::GlobalData)
+    hint = 1
+    a24 = A_to_a24(A)
+    a24pm = a24_to_a24pm(a24)
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    x = parent(A)(1)
+    lam, mu = 0, 0
+    while true
+        if hint < N
+            x = global_data.Elligator2[hint]
+        else
+            r = hint^2
+            x = -1/(1 + u*r)
+        end
+        x = A * x
+        !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+
+        if lam == 0
+            xP = Proj1(x)
+            xP = ladder(cofactor, xP, a24)
+            if is_infinity(xP)
+                hint += 1
+                continue
+            end
+            xQ = xP
+            e = 0
+            while true
+                e += 1
+                tmp = xTPL(xQ, a24pm)
+                if is_infinity(tmp)
+                    break
+                end
+                xQ = tmp
+            end
+            xT = xQ # point of order 3
+            lam, mu = compute_lam_mu(A, xT)
+            e == full_exp && break
+        else
+            y = square_root(x * (x^2 + A * x + 1))
+            t = y - (lam * x + mu)
+            if !is_cube(t)
+                xP = Proj1(x)
+                xP = ladder(cofactor, xP, a24)
+                xT = xTPLe(xP, a24pm, full_exp - 1)
+                lam, mu = compute_lam_mu(A, xT)
+                break
+            end
+        end
+        hint += 1
+    end
+    hint -= 1 # hint starts from 0
+
+    @assert hint < 1 << 8
+
+    return x, lam, mu, hint
+end
+
+function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFieldElem, hint::Int, global_data::GlobalData)
+    hint = hint + 2
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    x = parent(A)(1)
+
+    while true
+        if hint < N
+            x = global_data.Elligator2[hint]
+        else
+            r = hint^2
+            x = -1/(1 + u*r)
+        end
+        x = A * x
+        !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+        
+        y = square_root(x * (x^2 + A * x + 1))
+        t = y - (lam * x + mu)
+        !is_cube(t) && break
+        hint += 1
+    end
+    hint -= hint + 2 # hint starts from 0
+
+    @assert hint < 1 << 8
+
+    return x, hint
+end
+
 # return a basis of E[2^e]
 function basis_2e(A::FqFieldElem, cofactor::BigInt, global_data::GlobalData)
     a24 = A_to_a24(A)
@@ -901,6 +996,18 @@ function basis_2e_from_hint(A::FqFieldElem, cofactor::BigInt, hint1::Int, hint2:
     xPQ = x_add_sub(xP, xQ, a24)
 
     return xP, xQ, xPQ
+end
+
+# return a basis of E[3^e]
+function basis_3e(A::FqFieldElem, cofactor::BigInt, full_exp::Int, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1, lam, mu, hint1 = point_full3power(A, cofactor, full_exp, global_data)
+    x2, hint2 = point_full3power_not_above(A, lam, mu, hint1, global_data)
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+
+    return xP, xQ, xPQ, hint1, hint2
 end
 
 

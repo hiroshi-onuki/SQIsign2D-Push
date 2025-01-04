@@ -23,4 +23,6 @@ struct GlobalData
     E0_data::E0Data
     NSQs::Vector{FqFieldElem}
     SQNSQs::Vector{FqFieldElem}
+    Elligator2::Vector{FqFieldElem}
+    Elligator2u::FqFieldElem
 end

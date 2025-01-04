@@ -14,7 +14,8 @@ function key_gen(global_data::GlobalData)
     a24pk, xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk, J3, J2, alpha = FastDoublePath(true, global_data)
     Apk = Montgomery_coeff(a24pk)
 
-    xP3pk_fix, xQ3pk_fix, xPQ3pk_fix = torsion_basis(a24pk, 3, ExponentOfThree)
+    @time xP3pk_fix, xQ3pk_fix, xPQ3pk_fix = torsion_basis(a24pk, 3, ExponentOfThree)
+    @time basis_3e(Apk, CofactorWRT3, ExponentOfThree, global_data)
 
     n1, n2, n3, n4 = ec_bi_dlog(a24pk, BasisData(xP3pk_fix, xQ3pk_fix, xPQ3pk_fix), BasisData(xP3pk, xQ3pk, xPQ3pk), 3, ExponentOfThree)
     M = [n1 n3; n2 n4]
