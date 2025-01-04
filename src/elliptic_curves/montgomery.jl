@@ -895,7 +895,9 @@ function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, globa
     N = length(global_data.NSQs)
     x = parent(A)(1)
     lam, mu = 0, 0
+    is_neg = 0
     while true
+        is_neg = 0
         if hint < N
             x = global_data.Elligator2[hint]
         else
@@ -903,7 +905,10 @@ function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, globa
             x = -1/(1 + u*r)
         end
         x = A * x
-        !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+        if !is_square(x * (x^2 + A * x + 1))
+            x = -x - A
+            is_neg = 1
+        end
 
         if lam == 0
             xP = Proj1(x)
@@ -940,19 +945,24 @@ function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, globa
     end
     hint -= 1 # hint starts from 0
 
-    @assert hint < 1 << 8
+    @assert hint < 1 << 7
+    hint += is_neg << 7
 
     return x, lam, mu, hint
 end
 
 # return a point P in E(Fp^2) \ [3]E(Fp^2) s.t. P is not above a point of order 3 corresponding to lam, mu
 function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFieldElem, hint_start::Int, global_data::GlobalData)
+    mask = 0x7F
+    hint_start &= mask
     hint = hint_start + 2
     u = global_data.Elligator2u
     N = length(global_data.NSQs)
     x = parent(A)(1)
+    is_neg = 0
 
     while true
+        is_neg = 0
         if hint < N
             x = global_data.Elligator2[hint]
         else
@@ -960,7 +970,10 @@ function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFiel
             x = -1/(1 + u*r)
         end
         x = A * x
-        !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+        if !is_square(x * (x^2 + A * x + 1))
+            x = -x - A
+            is_neg = 1
+        end
         
         y = square_root(x * (x^2 + A * x + 1))
         t = y - (lam * x + mu)
@@ -969,7 +982,8 @@ function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFiel
     end
     hint -= hint_start + 2 # hint starts from 0
 
-    @assert hint < 1 << 8
+    @assert hint < 1 << 7
+    hint += is_neg << 7
 
     return x, hint
 end
@@ -978,6 +992,9 @@ end
 function point_full3power_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
     u = global_data.Elligator2u
     N = length(global_data.NSQs)
+    mask = 0x7F
+    is_neg = hint >> 7
+    hint &= mask
     hint += 1
 
     if hint < N
@@ -987,7 +1004,7 @@ function point_full3power_from_hint(A::FqFieldElem, hint::Int, global_data::Glob
         x = -1/(1 + u*r)
     end
     x = A * x
-    !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+    is_neg == 1 && (x = -x - A)
 
     return x
 end
@@ -996,7 +1013,12 @@ end
 function point_full3power_not_above_from_hint(A::FqFieldElem, hint1::Int, hint2::Int, global_data::GlobalData)
     u = global_data.Elligator2u
     N = length(global_data.NSQs)
+    mask = 0x7F
+    is_neg = hint2 >> 7
+    hint1 &= mask
+    hint2 &= mask
     hint = hint1 + hint2 + 2
+    println(hint1, " ", hint2, " ", hint, " ", is_neg)
 
     if hint < N
         x = global_data.Elligator2[hint]
@@ -1005,7 +1027,7 @@ function point_full3power_not_above_from_hint(A::FqFieldElem, hint1::Int, hint2:
         x = -1/(1 + u*r)
     end
     x = A * x
-    !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+    is_neg == 1 && (x = -x - A)
 
     return x
 end

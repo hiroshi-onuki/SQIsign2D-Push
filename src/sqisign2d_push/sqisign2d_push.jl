@@ -14,17 +14,19 @@ function key_gen(global_data::GlobalData)
     a24pk, xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk, J3, J2, alpha = FastDoublePath(true, global_data)
     Apk = Montgomery_coeff(a24pk)
 
-    @time xP3pk_fix, xQ3pk_fix, xPQ3pk_fix = torsion_basis(a24pk, 3, ExponentOfThree)
-    @time xP, xQ, xPQ, hint1, hint2 = basis_3e(Apk, CofactorWRT3, ExponentOfThree, global_data)
-    @time xPd, xQd, xPQd = basis_3e_from_hint(Apk, CofactorWRT3, hint1, hint2, global_data)
-    @assert xP == xPd
-    @assert xQ == xQd
-    @assert xPQ == xPQd
+    xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, hint1, hint2 = basis_3e(Apk, CofactorWRT3, ExponentOfThree, global_data)
 
     n1, n2, n3, n4 = ec_bi_dlog(a24pk, BasisData(xP3pk_fix, xQ3pk_fix, xPQ3pk_fix), BasisData(xP3pk, xQ3pk, xPQ3pk), 3, ExponentOfThree)
     M = [n1 n3; n2 n4]
 
-    return Apk, (xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M, J3, J2, alpha)
+    pk = Vector{UInt8}(undef, SignatureByteLength)
+    idx = 1
+    pk[idx:idx+Fp2ByteLength-1] = Fq_to_bytes(Apk)
+    idx += Fp2ByteLength
+    pk[idx] = integer_to_bytes(hint1, 1)[1]
+    pk[idx+1] = integer_to_bytes(hint2, 1)[1]
+
+    return pk, (xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M, J3, J2, alpha)
 end
 
 function commitment(global_data::GlobalData)
@@ -46,8 +48,8 @@ function challenge(A::FqFieldElem, m::String)
     return c % ChallengeDegree
 end
 
-function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
-    Apk = pk
+function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
+    Apk = bytes_to_Fq(pk[1:Fp2ByteLength], global_data.Fp2)
     a24pk = A_to_a24(Apk)
     xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M3pk, I3sk, I2sk, alpha_sk = sk
 
@@ -221,8 +223,10 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     return sign
 end
 
-function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::GlobalData)
-    Apk = pk
+function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::GlobalData)
+    Apk = bytes_to_Fq(pk[1:Fp2ByteLength], global_data.Fp2)
+    hint1pk = Int(pk[Fp2ByteLength+1])
+    hint2pk = Int(pk[Fp2ByteLength+2])
     a24pk = A_to_a24(Apk)
 
     # decompress the signature
@@ -251,7 +255,7 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     is_adjust_sqrt = sign[idx] & 1
 
     # compute Echl
-    xP3pk, xQ3pk, xPQ3pk = torsion_basis(a24pk, 3, ExponentOfThree)
+    xP3pk, xQ3pk, xPQ3pk = basis_3e_from_hint(Apk, CofactorWRT3, hint1pk, hint2pk, global_data)
     xKchl = ladder3pt(chl, xP3pk, xQ3pk, xPQ3pk, a24pk)
     a24chl, image_check = three_e_iso(a24pk, xKchl, ExponentOfThree, [xQ3pk], StrategiesDim1Three[ExponentOfThree])
     a24chl, image_check = Montgomery_normalize(a24chl, image_check)
