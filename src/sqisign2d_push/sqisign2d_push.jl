@@ -15,7 +15,11 @@ function key_gen(global_data::GlobalData)
     Apk = Montgomery_coeff(a24pk)
 
     @time xP3pk_fix, xQ3pk_fix, xPQ3pk_fix = torsion_basis(a24pk, 3, ExponentOfThree)
-    @time basis_3e(Apk, CofactorWRT3, ExponentOfThree, global_data)
+    @time xP, xQ, xPQ, hint1, hint2 = basis_3e(Apk, CofactorWRT3, ExponentOfThree, global_data)
+    @time xPd, xQd, xPQd = basis_3e_from_hint(Apk, CofactorWRT3, hint1, hint2, global_data)
+    @assert xP == xPd
+    @assert xQ == xQd
+    @assert xPQ == xPQd
 
     n1, n2, n3, n4 = ec_bi_dlog(a24pk, BasisData(xP3pk_fix, xQ3pk_fix, xPQ3pk_fix), BasisData(xP3pk, xQ3pk, xPQ3pk), 3, ExponentOfThree)
     M = [n1 n3; n2 n4]

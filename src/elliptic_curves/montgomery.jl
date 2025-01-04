@@ -2,7 +2,7 @@ export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
     two_e_iso, three_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
-    Montgomery_normalize, complete_basis, basis_2e, basis_2e_from_hint, basis_3e
+    Montgomery_normalize, complete_basis, basis_2e, basis_2e_from_hint, basis_3e, basis_3e_from_hint
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -886,6 +886,7 @@ function compute_lam_mu(A::FqFieldElem, xT::Proj1{FqFieldElem})
     return lam, mu
 end
 
+# return a point P in E(Fp^2) \ [3]E(Fp^2) and lam, mu for P
 function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, global_data::GlobalData)
     hint = 1
     a24 = A_to_a24(A)
@@ -944,8 +945,9 @@ function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, globa
     return x, lam, mu, hint
 end
 
-function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFieldElem, hint::Int, global_data::GlobalData)
-    hint = hint + 2
+# return a point P in E(Fp^2) \ [3]E(Fp^2) s.t. P is not above a point of order 3 corresponding to lam, mu
+function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFieldElem, hint_start::Int, global_data::GlobalData)
+    hint = hint_start + 2
     u = global_data.Elligator2u
     N = length(global_data.NSQs)
     x = parent(A)(1)
@@ -965,11 +967,47 @@ function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFiel
         !is_cube(t) && break
         hint += 1
     end
-    hint -= hint + 2 # hint starts from 0
+    hint -= hint_start + 2 # hint starts from 0
 
     @assert hint < 1 << 8
 
     return x, hint
+end
+
+# return a point P in E(Fp^2) \ [3]E(Fp^2) from hint
+function point_full3power_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    hint += 1
+
+    if hint < N
+        x = global_data.Elligator2[hint]
+    else
+        r = hint^2
+        x = -1/(1 + u*r)
+    end
+    x = A * x
+    !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+
+    return x
+end
+
+# return a point P in E(Fp^2) \ [3]E(Fp^2) from hint
+function point_full3power_not_above_from_hint(A::FqFieldElem, hint1::Int, hint2::Int, global_data::GlobalData)
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    hint = hint1 + hint2 + 2
+
+    if hint < N
+        x = global_data.Elligator2[hint]
+    else
+        r = hint^2
+        x = -1/(1 + u*r)
+    end
+    x = A * x
+    !is_square(x * (x^2 + A * x + 1)) && (x = -x - A)
+
+    return x
 end
 
 # return a basis of E[2^e]
@@ -1010,6 +1048,18 @@ function basis_3e(A::FqFieldElem, cofactor::BigInt, full_exp::Int, global_data::
     return xP, xQ, xPQ, hint1, hint2
 end
 
+# return a basis of E[3^e] from hint
+function basis_3e_from_hint(A::FqFieldElem, cofactor::BigInt, hint1::Int, hint2::Int, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1 = point_full3power_from_hint(A, hint1, global_data)
+    x2 = point_full3power_not_above_from_hint(A, hint1, hint2, global_data)
+
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+
+    return xP, xQ, xPQ
+end
 
 # isomorphism from Montgomery curve with a24 to Montgomery curve mapping P4 to (1, *)
 function isomorphism_Montgomery(a24::Proj1{T}, P4::Proj1{T}, Ps::Vector{Proj1{T}}) where T <: RingElem
