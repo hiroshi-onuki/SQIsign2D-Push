@@ -90,7 +90,7 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
 
     # compute Echl_d
     if e_dim1 > 0
-        xP2chl_fix, xQ2chl_fix, xPQ2chl_fix = torsion_basis(a24chl, e_dim1)
+        xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, _, _ = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2 << (ExponentOfTwo - e_dim1), global_data)
         xP2chl_short = xDBLe(xP2chl, a24chl, ExponentOfTwo - e_dim1)
         xQ2chl_short = xDBLe(xQ2chl, a24chl, ExponentOfTwo - e_dim1)
         xPQ2chl_short = xDBLe(xPQ2chl, a24chl, ExponentOfTwo - e_dim1)
@@ -130,30 +130,7 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
     xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
 
-    @time xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix = torsion_basis(a24chl_d, e_dim2_torsion)
-    @time begin
-    xP, xQ, xPQ, hint1, hint2 = basis_2e(Montgomery_coeff(a24chl_d), CofactorWRT2, global_data)
-    xP = xDBLe(xP, a24chl_d, ExponentOfTwo - e_dim2_torsion)
-    xQ = xDBLe(xQ, a24chl_d, ExponentOfTwo - e_dim2_torsion)
-    xPQ = xDBLe(xPQ, a24chl_d, ExponentOfTwo - e_dim2_torsion)
-    end
-    @assert is_infinity(xDBLe(xP, a24chl_d, e_dim2_torsion))
-    @assert is_infinity(xDBLe(xQ, a24chl_d, e_dim2_torsion))
-    @assert is_infinity(xDBLe(xPQ, a24chl_d, e_dim2_torsion))
-    @assert !is_infinity(xDBLe(xP, a24chl_d, e_dim2_torsion - 1))
-    @assert !is_infinity(xDBLe(xQ, a24chl_d, e_dim2_torsion - 1))
-    @assert !is_infinity(xDBLe(xPQ, a24chl_d, e_dim2_torsion - 1))
-    @assert xDBLe(xP, a24chl_d, e_dim2_torsion - 1) != xDBLe(xQ, a24chl_d, e_dim2_torsion - 1)
-    @time begin
-    xPtmp, xQtmp, xPQtmp = basis_2e_from_hint(Montgomery_coeff(a24chl_d), CofactorWRT2, hint1, hint2, global_data)
-    xPtmp = xDBLe(xPtmp, a24chl_d, ExponentOfTwo - e_dim2_torsion)
-    xQtmp = xDBLe(xQtmp, a24chl_d, ExponentOfTwo - e_dim2_torsion)
-    xPQtmp = xDBLe(xPQtmp, a24chl_d, ExponentOfTwo - e_dim2_torsion)
-    end
-    @assert xP == xPtmp
-    @assert xQ == xQtmp
-    @assert xPQ == xPQtmp
-
+    xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix, hint1, hint2 = basis_2e(Montgomery_coeff(a24chl_d), CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
     n1, n2, n3, n4 = ec_bi_dlog(a24chl_d, BasisData(xP2chl_d, xQ2chl_d, xPQ2chl_d), BasisData(xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix), 2, e_dim2_torsion)
     Mchl_d = [n1 n3; n2 n4]
 
@@ -171,7 +148,7 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
-    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix = torsion_basis(a24aux, e_dim2_torsion)
+    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, _, _ = basis_2e(Aaux, CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
     n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, e_dim2_torsion)
     Maux = [n1 n3; n2 n4]
     two_to_e_dim2_torsion = BigInt(1) << e_dim2_torsion
@@ -262,7 +239,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
 
     # compute Echl_d
     if e_dim1 > 0
-        xP2chl, xQ2chl, xPQ2chl = torsion_basis(a24chl, e_dim1)
+        xP2chl, xQ2chl, xPQ2chl, _, _ = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2 << (ExponentOfTwo - e_dim1), global_data)
         if coeff_ker_dim1_isP == 1
             xKchl_d = ladder3pt(coeff_ker_dim1, xQ2chl, xP2chl, xPQ2chl, a24chl)
         else
@@ -278,11 +255,11 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     else
         e_dim2_torsion = e_dim2
     end
-    xP2chl_d, xQ2chl_d, xPQ2chl_d = torsion_basis(a24chl_d, e_dim2_torsion)
+    xP2chl_d, xQ2chl_d, xPQ2chl_d, _, _ = basis_2e(Montgomery_coeff(a24chl_d), CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
 
     # compute kernel of dim2 isogeny on Eaux
     a24aux = A_to_a24(Aaux)
-    xP2aux, xQ2aux, xPQ2aux = torsion_basis(a24aux, e_dim2_torsion)
+    xP2aux, xQ2aux, xPQ2aux, _, _ = basis_2e(Aaux, CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
     if coeff_ker_dim2_isP == 1
         xP2aux, xQ2aux, xPQ2aux = action_of_matrix([coeff_ker_dim2_1 coeff_ker_dim2_2; 1 coeff_ker_dim2_3], a24aux, xP2aux, xQ2aux, xPQ2aux, e_dim2_torsion)
     else
