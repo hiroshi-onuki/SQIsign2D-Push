@@ -15,5 +15,5 @@ end
 
 num = 10
 check(SQIsign2D_Push.Level1, num)
-#check(SQIsign2D_Push.Level3, num)
-#check(SQIsign2D_Push.Level5, num)
+check(SQIsign2D_Push.Level3, num)
+check(SQIsign2D_Push.Level5, num)

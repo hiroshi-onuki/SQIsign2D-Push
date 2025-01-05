@@ -45,14 +45,6 @@ function make_E0_data()
 
     a24_0 = A_to_a24(A0)
 
-    P0 = add(P2e, P3e, Proj1(A0))
-    Q0 = add(Q2e, Q3e, Proj1(A0))
-    xP0 = Proj1(P0.X, P0.Z)
-    xQ0 = Proj1(Q0.X, Q0.Z)
-    PQ0 = add(P0, -Q0, Proj1(A0))
-    xPQ0 = Proj1(PQ0.X, PQ0.Z)
-    basis2e3e = BasisData(xP0, xQ0, xPQ0)
-
     xP2e = Proj1(P2e.X, P2e.Z)
     xQ2e = Proj1(Q2e.X, Q2e.Z)
     PQ2e = add(P2e, -Q2e, Proj1(A0))
