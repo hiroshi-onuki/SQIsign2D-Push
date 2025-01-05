@@ -1,9 +1,7 @@
 export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
-    two_e_iso, three_e_iso, odd_isogeny, torsion_basis, isomorphism_Montgomery,
-    Montgomery_normalize, complete_basis,
-    three_iso_curve, three_iso_eval # temporary!
+    two_e_iso, three_e_iso, Montgomery_normalize, basis_2e, basis_2e_from_hint, basis_3e, basis_3e_from_hint
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -642,158 +640,301 @@ function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}, s
     return a24, Ps
 end
 
-# isogeny of odd degree d
-function odd_isogeny(a24::Proj1{T}, ker::Proj1{T}, d::Integer, Qs::Vector{Proj1{T}}) where T <: RingElem
-    F = parent(a24.X)
-    s = div(d, 2)
-    K = ker
-    s >= 2 && (R = xDBL(ker, a24))
-    A = 1
-    C = 1
-    imQs = [[F(1), F(1)] for _ in Qs]
-    for i in 1:s 
-        tp = K.X + K.Z
-        tm = K.X - K.Z
-        A *= tp
-        C *= tm
-        for i in 1:length(Qs)
-            mp = (Qs[i].X - Qs[i].Z) * tp
-            pm = (Qs[i].X + Qs[i].Z) * tm
-            imQs[i][1] *= mp + pm
-            imQs[i][2] *= mp - pm
-        end
-        if i < s
-            K, R = R, xADD(R, ker, K)
-        end
-    end
-    A = A^8
-    C = C^8
-    A *= a24.X^d
-    C *= (a24.X - a24.Z)^d
-    retQs = Proj1{T}[Proj1(Qs[i].X*imQs[i][1]^2, Qs[i].Z*imQs[i][2]^2) for i in 1:length(Qs)]
-    return Proj1(A, A - C), retQs
+# root of x^2 + Ax + 1
+function compute_alpha(A::FqFieldElem)
+    d = square_root(A^2 - 4)
+    return (-A + d) / 2
 end
 
-# Algorithm 2 in SQIsign documentation
-# return a fixed basis (P, Q) of E[2^e] from P
-function complete_basis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, e::Int) where T <: RingElem
-    F = parent(a24.X)
-    p = Integer(characteristic(F))
-    N = (p + 1) >> e
-    A = a24_to_A(a24)
-    i = gen(F)
-    Q = Proj1(x)
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is above (0, 0)
+function point_full2power_above_montgomery(A::FqFieldElem, global_data::GlobalData)
+    hint = 1
+    i = gen(global_data.Fp2)
+    N = length(global_data.SQNSQs)
+    alpha = compute_alpha(A)
+    x = i
     while true
-        x += i
-        if is_square(A.Z * x * (A.Z * (x^2 + 1) + A.X * x))
-            Q = Proj1(x)
-            Q = ladder(N, Q, a24)
-            Qd = xDBLe(Q, a24, e-1)
-            if !is_infinity(Qd) && Qd != Pd
-                break
+        if hint < N
+            x = global_data.SQNSQs[hint]
+        else
+            x = i + hint
+            if !is_square(x) || is_square(x - 1)
+                hint += 1
+                continue
             end
         end
+        x = x * alpha
+        is_square(x * (x^2 + A * x + 1)) && break
+        hint += 1
     end
-    PQ = x_add_sub(P, Q, a24)
-    return P, Q, PQ
+    hint -= 1 # hint starts from 0
+
+    @assert hint < 1 << 8
+
+    return x, hint
 end
 
-function is_basis(a24::Proj1{T}, P::Proj1{T}, Q::Proj1{T}, l::Int) where T <: RingElem
-    for i in 1:div(l, 2)
-        P == ladder(i, Q, a24) && return false
-    end
-    return true
-end
-
-# Algorithm 2 in SQIsign documentation
-# return a fixed basis (P, Q) of E[l^e] from P
-function complete_basis(a24::Proj1{T}, P::Proj1{T}, Pd::Proj1{T}, x::T, l::Int, e::Int) where T <: RingElem
-    F = parent(a24.X)
-    p = Integer(characteristic(F))
-    N = div((p + 1), BigInt(l)^e)
-    A = a24_to_A(a24)
-    i = gen(F)
-    Q = Proj1(x)
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is not above (0, 0)
+function point_full2power_not_above_montgomery(A::FqFieldElem, global_data::GlobalData)
+    hint = 1
+    i = gen(global_data.Fp2)
+    N = length(global_data.NSQs)
+    x = i
     while true
-        x += i
-        if is_square(A.Z * x * (A.Z * (x^2 + 1) + A.X * x))
-            Q = Proj1(x)
-            Q = ladder(N, Q, a24)
-            Qd = ladder(BigInt(l)^(e-1), Q, a24)
-            if !is_infinity(Qd) && is_basis(a24, Pd, Qd, l)
-                break
+        if hint < N
+            x = global_data.NSQs[hint]
+        else
+            x = i + hint
+            if is_square(x)
+                hint += 1
+                continue
             end
         end
+        is_square(x * (x^2 + A * x + 1)) && break
+        hint += 1
     end
-    PQ = x_add_sub(P, Q, a24)
-    return P, Q, PQ
+    hint -= 1 # hint starts from 0
+
+    @assert hint < 1 << 8
+
+    return x, hint
 end
 
-# Algorithm 3 in SQIsign documentation
-# return a fixed basis of E[2^e]
-function torsion_basis(a24::Proj1{T}, e::Int) where T <: RingElem
-    F = parent(a24.X)
-    p = Integer(characteristic(F))
-    N = (p + 1) >> e
-    A = a24_to_A(a24)
-    i = gen(F)
-    x = F(1)
-    P = Proj1(x)
-    Pd = Proj1(x)
-    while true
-        x += i
-        if is_square(A.Z * x * (A.Z * (x^2 + 1) + A.X * x))
-            P = Proj1(x)
-            P = ladder(N, P, a24)
-            Pd = xDBLe(P, a24, e-1)
-            if !is_infinity(Pd)
-                break
-            end
-        end
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is above (0, 0)
+function point_full2power_above_montgomery_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
+    i = gen(global_data.Fp2)
+    N = length(global_data.SQNSQs)
+    alpha = compute_alpha(A)
+    hint += 1
+
+    if hint < N
+        x = global_data.SQNSQs[hint]
+    else
+        x = i + hint
     end
-    return complete_basis(a24, P, Pd, x, e)
+    x = x * alpha
+
+    return x
 end
 
-# Algorithm 3 in SQIsign documentation
-# return a fixed basis of E[2^e]
-function torsion_basis(A::T, e::Int) where T <: RingElem
+# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is not above (0, 0)
+function point_full2power_not_above_montgomery_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
+    i = gen(global_data.Fp2)
+    N = length(global_data.NSQs)
+    hint += 1
+
+    if hint < N
+        x = global_data.NSQs[hint]
+    else
+        x = i + hint
+    end
+
+    return x
+end
+
+# compute lam, mu s.t. y - (lam * x + mu) is the tangent line at T on E_A
+function compute_lam_mu(A::FqFieldElem, xT::Proj1{FqFieldElem})
+    x3 = affine(xT)
+    y3 = square_root(x3 * (x3^2 + A*x3 + 1))
+    lam = (3*x3^2 + 2*A*x3 + 1) / (2*y3)
+    mu = y3 - lam * x3
+    return lam, mu
+end
+
+# return a point P in E(Fp^2) \ [3]E(Fp^2) and lam, mu for P
+function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, global_data::GlobalData)
+    hint = 1
     a24 = A_to_a24(A)
-    return torsion_basis(a24, e)
-end
-
-# Algorithm 3 in SQIsign documentation
-# return a fixed basis of E[l^e]
-function torsion_basis(a24::Proj1{T}, l::Int, e::Int) where T <: RingElem
-    F = parent(a24.X)
-    p = Integer(characteristic(F))
-    N = div(p + 1, BigInt(l)^e)
-    A = a24_to_A(a24)
-    i = gen(F)
-    x = F(1)
-    P = Proj1(x)
-    Pd = Proj1(x)
+    a24pm = a24_to_a24pm(a24)
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    x = parent(A)(1)
+    lam, mu = 0, 0
+    is_neg = 0
     while true
-        x += i
-        if is_square(A.Z * x * (A.Z * (x^2 + 1) + A.X * x))
-            P = Proj1(x)
-            P = ladder(N, P, a24)
-            Pd = ladder(BigInt(l)^(e-1), P, a24)
-            if !is_infinity(Pd)
+        is_neg = 0
+        if hint < N
+            x = global_data.Elligator2[hint]
+        else
+            r = hint^2
+            x = -1/(1 + u*r)
+        end
+        x = A * x
+        if !is_square(x * (x^2 + A * x + 1))
+            x = -x - A
+            is_neg = 1
+        end
+
+        if lam == 0
+            xP = Proj1(x)
+            xP = ladder(cofactor, xP, a24)
+            if is_infinity(xP)
+                hint += 1
+                continue
+            end
+            xQ = xP
+            e = 0
+            while true
+                e += 1
+                tmp = xTPL(xQ, a24pm)
+                if is_infinity(tmp)
+                    break
+                end
+                xQ = tmp
+            end
+            xT = xQ # point of order 3
+            lam, mu = compute_lam_mu(A, xT)
+            e == full_exp && break
+        else
+            y = square_root(x * (x^2 + A * x + 1))
+            t = y - (lam * x + mu)
+            if !is_cube(t)
+                xP = Proj1(x)
+                xP = ladder(cofactor, xP, a24)
+                xT = xTPLe(xP, a24pm, full_exp - 1)
+                lam, mu = compute_lam_mu(A, xT)
                 break
             end
         end
+        hint += 1
     end
-    return complete_basis(a24, P, Pd, x, l, e)
+    hint -= 1 # hint starts from 0
+
+    @assert hint < 1 << 7
+    hint += is_neg << 7
+
+    return x, lam, mu, hint
 end
 
-# isomorphism from Montgomery curve with a24 to Montgomery curve mapping P4 to (1, *)
-function isomorphism_Montgomery(a24::Proj1{T}, P4::Proj1{T}, Ps::Vector{Proj1{T}}) where T <: RingElem
-    P2 = xDBL(P4, a24)
-    A = a24_to_A(a24)
-    u = P4.X * P2.Z - P2.X * P4.Z
-    Ad = Proj1((A.X * P2.Z + 3*P2.X*A.Z) * P4.Z, u * A.Z)
-    imPs = [Proj1(P4.Z * (P.X * P2.Z - P2.X * P.Z), u * P.Z) for P in Ps]
-    return A_to_a24(Ad), imPs
+# return a point P in E(Fp^2) \ [3]E(Fp^2) s.t. P is not above a point of order 3 corresponding to lam, mu
+function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFieldElem, hint_start::Int, global_data::GlobalData)
+    mask = 0x7F
+    hint_start &= mask
+    hint = hint_start + 2
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    x = parent(A)(1)
+    is_neg = 0
+
+    while true
+        is_neg = 0
+        if hint < N
+            x = global_data.Elligator2[hint]
+        else
+            r = hint^2
+            x = -1/(1 + u*r)
+        end
+        x = A * x
+        if !is_square(x * (x^2 + A * x + 1))
+            x = -x - A
+            is_neg = 1
+        end
+        
+        y = square_root(x * (x^2 + A * x + 1))
+        t = y - (lam * x + mu)
+        !is_cube(t) && break
+        hint += 1
+    end
+    hint -= hint_start + 2 # hint starts from 0
+
+    @assert hint < 1 << 7
+    hint += is_neg << 7
+
+    return x, hint
+end
+
+# return a point P in E(Fp^2) \ [3]E(Fp^2) from hint
+function point_full3power_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    mask = 0x7F
+    is_neg = hint >> 7
+    hint &= mask
+    hint += 1
+
+    if hint < N
+        x = global_data.Elligator2[hint]
+    else
+        r = hint^2
+        x = -1/(1 + u*r)
+    end
+    x = A * x
+    is_neg == 1 && (x = -x - A)
+
+    return x
+end
+
+# return a point P in E(Fp^2) \ [3]E(Fp^2) from hint
+function point_full3power_not_above_from_hint(A::FqFieldElem, hint1::Int, hint2::Int, global_data::GlobalData)
+    u = global_data.Elligator2u
+    N = length(global_data.NSQs)
+    mask = 0x7F
+    is_neg = hint2 >> 7
+    hint1 &= mask
+    hint2 &= mask
+    hint = hint1 + hint2 + 2
+
+    if hint < N
+        x = global_data.Elligator2[hint]
+    else
+        r = hint^2
+        x = -1/(1 + u*r)
+    end
+    x = A * x
+    is_neg == 1 && (x = -x - A)
+
+    return x
+end
+
+# return a basis of E[2^e]
+function basis_2e(A::FqFieldElem, cofactor::BigInt, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1, hint1 = point_full2power_above_montgomery(A, global_data)
+    x2, hint2 = point_full2power_not_above_montgomery(A, global_data)
+
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+    
+    return xP, xQ, xPQ, hint1, hint2
+end
+
+# return a basis of E[2^e] from hint
+function basis_2e_from_hint(A::FqFieldElem, cofactor::BigInt, hint1::Int, hint2::Int, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1 = point_full2power_above_montgomery_from_hint(A, hint1, global_data)
+    x2 = point_full2power_not_above_montgomery_from_hint(A, hint2, global_data)
+
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+
+    return xP, xQ, xPQ
+end
+
+# return a basis of E[3^e]
+function basis_3e(A::FqFieldElem, cofactor::BigInt, full_exp::Int, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1, lam, mu, hint1 = point_full3power(A, cofactor, full_exp, global_data)
+    x2, hint2 = point_full3power_not_above(A, lam, mu, hint1, global_data)
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+
+    return xP, xQ, xPQ, hint1, hint2
+end
+
+# return a basis of E[3^e] from hint
+function basis_3e_from_hint(A::FqFieldElem, cofactor::BigInt, hint1::Int, hint2::Int, global_data::GlobalData)
+    a24 = A_to_a24(A)
+    x1 = point_full3power_from_hint(A, hint1, global_data)
+    x2 = point_full3power_not_above_from_hint(A, hint1, hint2, global_data)
+
+    xP = ladder(cofactor, Proj1(x1), a24)
+    xQ = ladder(cofactor, Proj1(x2), a24)
+    xPQ = x_add_sub(xP, xQ, a24)
+
+    return xP, xQ, xPQ
 end
 
 # Algorithm 1 in SQIsign documentation

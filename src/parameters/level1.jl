@@ -45,14 +45,6 @@ function make_E0_data()
 
     a24_0 = A_to_a24(A0)
 
-    P0 = add(P2e, P3e, Proj1(A0))
-    Q0 = add(Q2e, Q3e, Proj1(A0))
-    xP0 = Proj1(P0.X, P0.Z)
-    xQ0 = Proj1(Q0.X, Q0.Z)
-    PQ0 = add(P0, -Q0, Proj1(A0))
-    xPQ0 = Proj1(PQ0.X, PQ0.Z)
-    basis2e3e = BasisData(xP0, xQ0, xPQ0)
-
     xP2e = Proj1(P2e.X, P2e.Z)
     xQ2e = Proj1(Q2e.X, Q2e.Z)
     PQ2e = add(P2e, -Q2e, Proj1(A0))
@@ -75,5 +67,24 @@ end
 function make_precomputed_values()
     Fp2, E0 = make_E0_data()
 
-    return GlobalData(Fp2, E0)
+    i = gen(Fp2)
+    x = 2*i + 1
+    NSQs = FqFieldElem[]
+    SQNSQs = FqFieldElem[]
+    while length(NSQs) < NumOfNSQs || length(SQNSQs) < NumOfNSQs
+        if !is_square(x)
+            length(NSQs) < NumOfNSQs && push!(NSQs, x)
+        elseif !is_square(x - 1)
+            length(SQNSQs) < NumOfNSQs && push!(SQNSQs, x)
+        end
+        x += 1
+    end
+
+    u = NSQs[1]
+    Elligator2 = FqFieldElem[]
+    for r in 1:NumOfElligator2
+        push!(Elligator2, -1/(1 + u*r^2))
+    end
+
+    return GlobalData(Fp2, E0, NSQs, SQNSQs, Elligator2, u)
 end

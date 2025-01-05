@@ -14,12 +14,19 @@ function key_gen(global_data::GlobalData)
     a24pk, xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk, J3, J2, alpha = FastDoublePath(true, global_data)
     Apk = Montgomery_coeff(a24pk)
 
-    xP3pk_fix, xQ3pk_fix, xPQ3pk_fix = torsion_basis(a24pk, 3, ExponentOfThree)
+    xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, hint1, hint2 = basis_3e(Apk, CofactorWRT3, ExponentOfThree, global_data)
 
     n1, n2, n3, n4 = ec_bi_dlog(a24pk, BasisData(xP3pk_fix, xQ3pk_fix, xPQ3pk_fix), BasisData(xP3pk, xQ3pk, xPQ3pk), 3, ExponentOfThree)
     M = [n1 n3; n2 n4]
- 
-    return Apk, (xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M, J3, J2, alpha)
+
+    pk = Vector{UInt8}(undef, SignatureByteLength)
+    idx = 1
+    pk[idx:idx+Fp2ByteLength-1] = Fq_to_bytes(Apk)
+    idx += Fp2ByteLength
+    pk[idx] = integer_to_bytes(hint1, 1)[1]
+    pk[idx+1] = integer_to_bytes(hint2, 1)[1]
+
+    return pk, (xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M, J3, J2, alpha)
 end
 
 function commitment(global_data::GlobalData)
@@ -41,8 +48,8 @@ function challenge(A::FqFieldElem, m::String)
     return c % ChallengeDegree
 end
 
-function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
-    Apk = pk
+function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
+    Apk = bytes_to_Fq(pk[1:Fp2ByteLength], global_data.Fp2)
     a24pk = A_to_a24(Apk)
     xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M3pk, I3sk, I2sk, alpha_sk = sk
 
@@ -83,7 +90,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
 
     # compute Echl_d
     if e_dim1 > 0
-        xP2chl_fix, xQ2chl_fix, xPQ2chl_fix = torsion_basis(a24chl, e_dim1)
+        xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, _, _ = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2 << (ExponentOfTwo - e_dim1), global_data)
         xP2chl_short = xDBLe(xP2chl, a24chl, ExponentOfTwo - e_dim1)
         xQ2chl_short = xDBLe(xQ2chl, a24chl, ExponentOfTwo - e_dim1)
         xPQ2chl_short = xDBLe(xPQ2chl, a24chl, ExponentOfTwo - e_dim1)
@@ -123,7 +130,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
     xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
 
-    xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix = torsion_basis(a24chl_d, e_dim2_torsion)
+    xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix, hint1, hint2 = basis_2e(Montgomery_coeff(a24chl_d), CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
     n1, n2, n3, n4 = ec_bi_dlog(a24chl_d, BasisData(xP2chl_d, xQ2chl_d, xPQ2chl_d), BasisData(xP2chl_d_fix, xQ2chl_d_fix, xPQ2chl_d_fix), 2, e_dim2_torsion)
     Mchl_d = [n1 n3; n2 n4]
 
@@ -141,7 +148,7 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
-    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix = torsion_basis(a24aux, e_dim2_torsion)
+    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, _, _ = basis_2e(Aaux, CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
     n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, e_dim2_torsion)
     Maux = [n1 n3; n2 n4]
     two_to_e_dim2_torsion = BigInt(1) << e_dim2_torsion
@@ -193,8 +200,10 @@ function signing(pk::FqFieldElem, sk, m::String, global_data::GlobalData)
     return sign
 end
 
-function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::GlobalData)
-    Apk = pk
+function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::GlobalData)
+    Apk = bytes_to_Fq(pk[1:Fp2ByteLength], global_data.Fp2)
+    hint1pk = Int(pk[Fp2ByteLength+1])
+    hint2pk = Int(pk[Fp2ByteLength+2])
     a24pk = A_to_a24(Apk)
 
     # decompress the signature
@@ -223,14 +232,14 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     is_adjust_sqrt = sign[idx] & 1
 
     # compute Echl
-    xP3pk, xQ3pk, xPQ3pk = torsion_basis(a24pk, 3, ExponentOfThree)
+    xP3pk, xQ3pk, xPQ3pk = basis_3e_from_hint(Apk, CofactorWRT3, hint1pk, hint2pk, global_data)
     xKchl = ladder3pt(chl, xP3pk, xQ3pk, xPQ3pk, a24pk)
     a24chl, image_check = three_e_iso(a24pk, xKchl, ExponentOfThree, [xQ3pk], StrategiesDim1Three[ExponentOfThree])
     a24chl, image_check = Montgomery_normalize(a24chl, image_check)
 
     # compute Echl_d
     if e_dim1 > 0
-        xP2chl, xQ2chl, xPQ2chl = torsion_basis(a24chl, e_dim1)
+        xP2chl, xQ2chl, xPQ2chl, _, _ = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2 << (ExponentOfTwo - e_dim1), global_data)
         if coeff_ker_dim1_isP == 1
             xKchl_d = ladder3pt(coeff_ker_dim1, xQ2chl, xP2chl, xPQ2chl, a24chl)
         else
@@ -246,11 +255,11 @@ function verify(pk::FqFieldElem, sign::Vector{UInt8}, m::String, global_data::Gl
     else
         e_dim2_torsion = e_dim2
     end
-    xP2chl_d, xQ2chl_d, xPQ2chl_d = torsion_basis(a24chl_d, e_dim2_torsion)
+    xP2chl_d, xQ2chl_d, xPQ2chl_d, _, _ = basis_2e(Montgomery_coeff(a24chl_d), CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
 
     # compute kernel of dim2 isogeny on Eaux
     a24aux = A_to_a24(Aaux)
-    xP2aux, xQ2aux, xPQ2aux = torsion_basis(a24aux, e_dim2_torsion)
+    xP2aux, xQ2aux, xPQ2aux, _, _ = basis_2e(Aaux, CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
     if coeff_ker_dim2_isP == 1
         xP2aux, xQ2aux, xPQ2aux = action_of_matrix([coeff_ker_dim2_1 coeff_ker_dim2_2; 1 coeff_ker_dim2_3], a24aux, xP2aux, xQ2aux, xPQ2aux, e_dim2_torsion)
     else

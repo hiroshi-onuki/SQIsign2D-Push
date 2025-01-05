@@ -30,7 +30,7 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
 
     # points to be evaluated by the isogeny
     O = infinity_point(global_data.Fp2)
-    xP3e_d, xQ3e_d, xPQ3e_d = torsion_basis(a24d, 3, ExponentOfThree)
+    xP3e_d, xQ3e_d, xPQ3e_d, _, _ = basis_3e(Montgomery_coeff(a24d), CofactorWRT3, ExponentOfThree, global_data)
     OP3e_d = CouplePoint(O, xP3e_d)
     OQ3e_d = CouplePoint(O, xQ3e_d)
     OPQ3e_d = CouplePoint(O, xPQ3e_d)

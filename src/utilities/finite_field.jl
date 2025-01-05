@@ -31,6 +31,14 @@ function square_root(x::FinFieldElem)
     return x0
 end
 
+# return x is cube in Fp2
+function is_cube(x::FinFieldElem)
+    p = characteristic(parent(x))
+    e = div(p + 1, 3)
+    x = x^e
+    return Frob(x) == x
+end
+
 # x < y in lexicographic order, i.e. x < y if and only if x[0] < y[0] or (x[0] == y[0] and x[1] < y[1])
 function lex_order(x::FinFieldElem, y::FinFieldElem)
     coeff(x, 0) == coeff(y, 0) && return lift(ZZ, coeff(x, 1)) < lift(ZZ, coeff(y, 1))
