@@ -88,6 +88,15 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         two_to_e_dim2 <<= 1
     end
 
+    # compute the image of phi_rsp(P2com, Q2com)
+    c = invmod(three_to_e3^2 * ChallengeDegree, two_to_e2)
+    xP2rsp, xQ2rsp, xPQ2rsp = action_on_torsion_basis(involution(alpha), a24chl, xP2chl, xQ2chl, xPQ2chl, global_data.E0_data, c)
+    
+    # find the kernel of dual of the even part of the response isogeny
+    xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, hint1chl, hint2chl = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2, global_data)
+    n1, n2, n3, n4 = ec_bi_dlog(a24chl, BasisData(xP2rsp, xQ2rsp, xPQ2rsp), BasisData(xP2chl_fix, xQ2chl_fix, xPQ2chl_fix), 2, ExponentOfTwo)
+    Mchl = [n1 n3; n2 n4]
+
     # compute Echl_d
     if e_dim1 > 0
         xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, _, _ = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2 << (ExponentOfTwo - e_dim1), global_data)
@@ -145,14 +154,23 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     end
     a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
     Aaux = Montgomery_coeff(a24aux)
+    #xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion - e_dim1)
+    #xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion - e_dim1)
+    #xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion - e_dim1)
+    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, _, _ = basis_2e(Aaux, CofactorWRT2, global_data)
+    n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, ExponentOfTwo)
+    Maux = [n1 n3; n2 n4]
     xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
-    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, _, _ = basis_2e(Aaux, CofactorWRT2 << (ExponentOfTwo - e_dim2_torsion), global_data)
-    n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, e_dim2_torsion)
-    Maux = [n1 n3; n2 n4]
+    xP2aux_fix_d = xDBLe(xP2aux_fix, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xQ2aux_fix_d = xDBLe(xQ2aux_fix, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xPQ2aux_fix_d = xDBLe(xPQ2aux_fix, a24aux, ExponentOfTwo - e_dim2_torsion)
+    n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix_d, xQ2aux_fix_d, xPQ2aux_fix_d), 2, e_dim2_torsion)
+    Maux_d = [n1 n3; n2 n4]
+    println((Maux - Maux_d) .% two_to_e_dim2)
     two_to_e_dim2_torsion = BigInt(1) << e_dim2_torsion
-    M = (Maux * invmod_2x2(Mchl_d, two_to_e_dim2_torsion)) .% two_to_e_dim2_torsion
+    M = (Maux_d * invmod_2x2(Mchl_d, two_to_e_dim2_torsion)) .% two_to_e_dim2_torsion
     a, b, c, d = M
     if a % 2 == 0
         b_inv = invmod(b, two_to_e_dim2_torsion)
@@ -170,6 +188,49 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         coeff_ker_dim2_isP = 0
         a_sqrt = sqrt_mod_2power(a^2 % two_to_e_dim2, e_dim2)
         is_adjust_sqrt = ((a - a_sqrt) % two_to_e_dim2 == 0 || (a + a_sqrt) % two_to_e_dim2 == 0) ? 0 : 1
+    end
+
+    # test
+    xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, hint1chl, hint2chl = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2, global_data)
+    Mtmp = (Mchl * invmod_2x2(Maux, two_to_e2)) .% two_to_e2
+    println("M: ", Mtmp)
+    xP2tmp, xQ2tmp, xPQ2tmp = action_of_matrix(Mtmp, a24chl, xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, ExponentOfTwo)
+    if e_dim1 > 0
+        println("e_dim1: ", e_dim1)
+        if Mtmp[1, 1] % 2 != 0 || Mtmp[2, 1] % 2 != 0
+            println("not even")
+            xK = xDBLe(xP2tmp, a24chl, ExponentOfTwo - e_dim1)
+        else
+            println("even")
+            xK = xDBLe(xQ2tmp, a24chl, ExponentOfTwo - e_dim1)
+        end
+        @assert !is_infinity(xDBLe(xK, a24chl, e_dim1 - 1))
+        a24chl_d_test, images = two_e_iso(a24chl, xK, e_dim1, [xP2tmp, xQ2tmp, xPQ2tmp])
+        xP2tmp, xQ2tmp, xPQ2tmp = images
+        @assert jInvariant_a24(a24chl_d_test) == jInvariant_a24(a24chl_d)
+        a24chl = a24chl_d_test
+    end
+    @assert is_infinity(xDBLe(xP2tmp, a24chl, ExponentOfTwo - e_dim1))
+    @assert is_infinity(xDBLe(xQ2tmp, a24chl, ExponentOfTwo - e_dim1))
+    @assert is_infinity(xDBLe(xPQ2tmp, a24chl, ExponentOfTwo - e_dim1))
+    @assert !is_infinity(xDBLe(xP2tmp, a24chl, ExponentOfTwo - e_dim1 - 1))
+    @assert !is_infinity(xDBLe(xQ2tmp, a24chl, ExponentOfTwo - e_dim1 - 1))
+    @assert !is_infinity(xDBLe(xPQ2tmp, a24chl, ExponentOfTwo - e_dim1 - 1))
+    xP2tmp = xDBLe(xP2tmp, a24chl, ExponentOfTwo - e_dim1 - e_dim2_torsion)
+    xQ2tmp = xDBLe(xQ2tmp, a24chl, ExponentOfTwo - e_dim1 - e_dim2_torsion)
+    xPQ2tmp = xDBLe(xPQ2tmp, a24chl, ExponentOfTwo - e_dim1 - e_dim2_torsion)
+    xP2aux_fix = xDBLe(xP2aux_fix, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xQ2aux_fix = xDBLe(xQ2aux_fix, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xPQ2aux_fix = xDBLe(xPQ2aux_fix, a24aux, ExponentOfTwo - e_dim2_torsion)
+    K1 = CouplePoint(xP2tmp, xP2aux_fix)
+    K2 = CouplePoint(xQ2tmp, xQ2aux_fix)
+    K12 = CouplePoint(xPQ2tmp, xPQ2aux_fix)
+    if e_dim2_torsion > e_dim2
+        println("not sqrt")
+        Es, _ = product_isogeny(a24chl, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
+    else
+        println("sqrt")
+        Es, _ = product_isogeny_sqrt(a24chl, a24aux, K1, K2, K12, CouplePoint{FqFieldElem}[], e_dim2, StrategiesDim2[e_dim2])
     end
 
     # make the signature
