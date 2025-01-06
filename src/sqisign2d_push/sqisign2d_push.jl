@@ -141,6 +141,11 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[1, 2], Dim2KernelCoeffByteLength)
     idx += Dim2KernelCoeffByteLength
     sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[2, 2], Dim2KernelCoeffByteLength)
+    idx += Dim2KernelCoeffByteLength
+    sign[idx] = integer_to_bytes(hint1chl, 1)[1]
+    sign[idx+1] = integer_to_bytes(hint2chl, 1)[1]
+    sign[idx+2] = integer_to_bytes(hint1aux, 1)[1]
+    sign[idx+3] = integer_to_bytes(hint2aux, 1)[1]
 
     return sign
 end
@@ -169,6 +174,11 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     Mrsp[1, 2] = bytes_to_integer(sign[idx:idx+Dim2KernelCoeffByteLength-1])
     idx += Dim2KernelCoeffByteLength
     Mrsp[2, 2] = bytes_to_integer(sign[idx:idx+Dim2KernelCoeffByteLength-1])
+    idx += Dim2KernelCoeffByteLength
+    hint1chl = Int(sign[idx])
+    hint2chl = Int(sign[idx+1])
+    hint1aux = Int(sign[idx+2])
+    hint2aux = Int(sign[idx+3])
     if ExponentOfTwo - e_dim1 - e_dim2 >= 2
         e_dim2_torsion = e_dim2 + 2
     else
@@ -181,7 +191,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     a24chl, image_check = three_e_iso(a24pk, xKchl, ExponentOfThree, [xQ3pk], StrategiesDim1Three[ExponentOfThree])
     a24chl, image_check = Montgomery_normalize(a24chl, image_check)
     Achl = Montgomery_coeff(a24chl)
-    xP2chl, xQ2chl, xPQ2chl, _, _ = basis_2e(Achl, CofactorWRT2, global_data)
+    xP2chl, xQ2chl, xPQ2chl = basis_2e_from_hint(Achl, CofactorWRT2, hint1chl, hint2chl, global_data)
     xP2chl, xQ2chl, xPQ2chl = action_of_matrix(Mrsp, a24chl, xP2chl, xQ2chl, xPQ2chl, ExponentOfTwo)
 
     # compute Echl_d
@@ -206,7 +216,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
 
     # compute the deterministic basis on Eaux
     a24aux = A_to_a24(Aaux)
-    xP2aux, xQ2aux, xPQ2aux, _, _ = basis_2e(Aaux, CofactorWRT2, global_data)
+    xP2aux, xQ2aux, xPQ2aux = basis_2e_from_hint(Aaux, CofactorWRT2, hint1aux, hint2aux, global_data)
     xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
