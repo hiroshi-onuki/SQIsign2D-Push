@@ -75,10 +75,16 @@ function Monodromy(a24::T, e::Int, XP::T, XQinv::T, XPQ::T) where T <: RingElem
     F = parent(a24)
     XnP, ZnP, XnPQ, ZnPQ = CubicalLadderDbl(a24, e - 1, XPQ, F(1), XP, F(1), XQinv)
     if XnP == 0
-        return XnPQ * ZnP, ZnP^2
+        den = ZnP^2
     else
-        return XnPQ * ZnP - ZnPQ * XnP, XnP^2 - ZnP^2
+        den = XnP^2 - ZnP^2
     end
+    if ZnP == 0
+        num = ZnPQ * XnP
+    else
+        num = XnPQ * ZnP - ZnPQ * XnP
+    end
+    return num, den
 end
 
 # the 2^e-Weil pairing of P, Q, where XPQ is x(P - Q)
