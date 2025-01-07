@@ -72,7 +72,25 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     IskIchl = div(IskIchl * alpha_sk, two_to_e2^2)
     I = involution_product(Icom, IskIchl)
     alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo)
-    @assert found
+    if !found
+        q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
+        Imatrix = ideal_to_matrix(I)
+        H = integral_LLL([Imatrix[:, i] for i in 1:4], q)
+        LLLmat = Imatrix * H
+        red_basis = [LLLmat[:, i] for i in 1:4]
+        bs = [QOrderElem(red_basis[i][1], red_basis[i][2], red_basis[i][3], red_basis[i][4]) for i in 1:4]
+        Is = LeftIdeal[]
+        for b in bs
+            @assert norm(b) % norm(I) == 0
+            println(div(norm(b), norm(I)), " ", div(norm(b), norm(I)) % 3, " ", log(2, div(norm(b), norm(I))), " ", gcd(b) % 3)
+            if div(norm(b), norm(I)) % 3 == 0
+                push!(Is, LeftIdeal(b, norm(I) * 3))
+            end
+        end
+        println(Is[1] == Is[2])
+        @assert false
+    end
+
     f2 = BigInt(1) << valuation(gcd(alpha), 2)
     alpha = div(alpha, f2)
     q = div(q, f2^2)
