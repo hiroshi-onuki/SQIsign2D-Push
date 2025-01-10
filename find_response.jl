@@ -6,6 +6,7 @@ using SQIsign2D_Push
 function benchmark_test(param::Module, num::Int, num_pk::Int)
     global_data = param.make_precomputed_values()
     
+    println("\nLevel: $(param)")
     for i in 1:num_pk
         println("test $i start")
         pk, sk = param.key_gen(global_data)
@@ -15,16 +16,18 @@ function benchmark_test(param::Module, num::Int, num_pk::Int)
             found, bs, ideal_check = param.signing(pk, sk, m, global_data)
             if !found
                 count += 1
-                println("not found")
             end
-            print("\r($k/$num) done. fail: $count")
+            #print("\r($k/$num) done. fail: $count")
         end
-        println("\nfail response: $count/$num")
+        println("fail response: $count/$num")
     end
 end
 
-num = 100
-num_pk = 10
-@time benchmark_test(SQIsign2D_Push.Level1, num, num_pk)
-@time benchmark_test(SQIsign2D_Push.Level3, num, num_pk)
-@time benchmark_test(SQIsign2D_Push.Level5, num, num_pk)
+@assert length(ARGS) == 3
+level = parse(Int, ARGS[1])
+num_pk = parse(Int, ARGS[2])
+num = parse(Int, ARGS[3])
+
+params = [SQIsign2D_Push.Level1, SQIsign2D_Push.Level3, SQIsign2D_Push.Level5]
+
+benchmark_test(params[level], num, num_pk)
