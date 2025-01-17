@@ -74,7 +74,6 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     e3 = valuation(gcd(involution(gen_com) * IskIchl), 3)
     I = involution_product(Icom, IskIchl)
     alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo, e3, IskIchl)
-    """
     if found
         return true, BigInt[], false
     else
@@ -86,8 +85,6 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         bs = [QOrderElem(red_basis[i][1], red_basis[i][2], red_basis[i][3], red_basis[i][4]) for i in 1:4]
         return false, [div(norm(b), norm(I)) for b in bs], LeftIdeal(bs[1], norm(I) * 3) == LeftIdeal(bs[2], norm(I) * 3)
     end
-    """
-    @assert found
 
     f2 = BigInt(1) << valuation(gcd(alpha), 2)
     alpha = div(alpha, f2)

@@ -28,6 +28,6 @@ level = parse(Int, ARGS[1])
 num_pk = parse(Int, ARGS[2])
 num = parse(Int, ARGS[3])
 
-params = [SQIsign2D_Push.Level1, SQIsign2D_Push.Level3, SQIsign2D_Push.Level5]
+params = [SQIsign2D_Push.Level1, SQIsign2D_Push.Level3, SQIsign2D_Push.Level5, SQIsign2D_Push.Level1new]
 
 benchmark_test(params[level], num, num_pk)

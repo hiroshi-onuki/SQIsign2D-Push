@@ -49,6 +49,13 @@ def make_constants(p, e2, e3, file_name):
     out_file.write(str)
     out_file.close()
 
+# new level1
+set_random_seed(0)
+e2 = 131
+e3 = 78
+p = 2^e2 * 3^e3 - 1
+make_constants(p, e2, e3, "level1newtorsion.txt")
+
 # level1
 set_random_seed(0)
 e2 = 132

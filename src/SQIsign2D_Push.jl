@@ -39,4 +39,9 @@ using Nemo, SQIsign2D_Push
 include("parameters/level5.jl")
 end # module Level5
 
+module Level1new
+using Nemo, SQIsign2D_Push
+include("parameters/level1new.jl")
+end # module Level1
+
 end # module SQIsign2D_Push

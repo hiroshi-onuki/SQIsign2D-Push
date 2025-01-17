@@ -129,7 +129,7 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int, e::Int, J::LeftI
                 @assert g % BigInt(3)^e == 0
                 g = div(g, BigInt(3)^e)
                 g % 3 == 0 && @assert newN % 3 == 0
-                g % 3 != 0 && return alpha, newN, true
+                newN % 3 != 0 && return alpha, newN, true
             else
                 return Quaternion_0, 0, false
             end

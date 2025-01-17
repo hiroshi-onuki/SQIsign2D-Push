@@ -1,0 +1,9 @@
+const ExponentOfTwo = 131
+const ExponentOfThree = 78
+const two_to_e2 = BigInt(2)^ExponentOfTwo
+const three_to_e3 = BigInt(3)^ExponentOfThree
+const Cofactor = 1
+const CofactorWRT2 = BigInt(3)^ExponentOfThree * Cofactor
+const CofactorWRT3 = BigInt(2)^ExponentOfTwo * Cofactor
+const p = BigInt(2)^ExponentOfTwo * BigInt(3)^ExponentOfThree * Cofactor - 1
+const Log2p = Int(ceil(log(2, p)))
