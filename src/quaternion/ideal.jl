@@ -36,12 +36,6 @@ function Base.:*(I::LeftIdeal, x::QOrderElem)
     return LeftIdeal(I.b1*x, I.b2*x, I.b3*x, I.b4*x)
 end
 
-function Base.:*(I::LeftIdeal, J::LeftIdeal)
-    generator = [x * y for x in [I.b1, I.b2, I.b3, I.b4] for y in [J.b1, J.b2, J.b3, J.b4]]
-    basis = get_basis([to_vector(b) for b in generator])
-    return LeftIdeal([QOrderElem(b[1], b[2], b[3], b[4]) for b in basis])
-end
-
 function Base.gcd(I::LeftIdeal)
     return gcd(gcd(I.b1), gcd(I.b2), gcd(I.b3), gcd(I.b4))
 end
@@ -79,7 +73,7 @@ function larger_ideal(I::LeftIdeal, N::Integer)
 end
 
 # return alpha in I s.t. q_I(alpha) < 2^a and q_I(alpha) neq 0 mod 3
-function element_for_response(I::LeftIdeal, nI::BigInt, a::Int, e::Int, J::LeftIdeal)
+function element_for_response(I::LeftIdeal, nI::BigInt, a::Int)
     q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
 
     # LLL reduction
@@ -123,12 +117,6 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int, e::Int, J::LeftI
                 v = sum([x[i]*red_basis[i] for i in 1:4])
                 alpha = QOrderElem(v[1], v[2], v[3], v[4])
                 newN = div(norm(alpha), nI)
-                Jalpha = ideal_transform(J, alpha, norm(J))
-                JalphaJ = Jalpha * J
-                g = gcd(JalphaJ)
-                @assert g % BigInt(3)^e == 0
-                g = div(g, BigInt(3)^e)
-                g % 3 == 0 && @assert newN % 3 == 0
                 newN % 3 != 0 && return alpha, newN, true
             else
                 return Quaternion_0, 0, false
@@ -166,16 +154,6 @@ function primitive_element(I::LeftIdeal)
     a = I[1]
     i = 1
     while gcd(a) != 1
-        a += I[i]
-        i = (i % 4) + 1
-    end
-    return a
-end
-
-function element_exact_norm(I::LeftIdeal, nI::BigInt, l::Integer)
-    a = I[1]
-    i = 1
-    while div(norm(a), nI) % l == 0
         a += I[i]
         i = (i % 4) + 1
     end

@@ -70,22 +70,9 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     # find alpha in bar(Icom)IskIcha suitable for the response
     IskIchl = intersection(I2sk, Ichl)
     IskIchl = div(IskIchl * alpha_sk, two_to_e2^2)
-    gen_com = element_exact_norm(Icom, three_to_e3^2, 3)
-    e3 = valuation(gcd(involution(gen_com) * IskIchl), 3)
     I = involution_product(Icom, IskIchl)
-    alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo, e3, IskIchl)
-    if found
-        return true, BigInt[], nothing, false
-    else
-        q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
-        Imatrix = ideal_to_matrix(I)
-        H = integral_LLL([Imatrix[:, i] for i in 1:4], q)
-        LLLmat = Imatrix * H
-        red_basis = [LLLmat[:, i] for i in 1:4]
-        bs = [QOrderElem(red_basis[i][1], red_basis[i][2], red_basis[i][3], red_basis[i][4]) for i in 1:4]
-        return false, [div(norm(b), norm(I)) for b in bs], bs, LeftIdeal(bs[1], norm(I) * 3) == LeftIdeal(bs[2], norm(I) * 3)
-    end
-
+    alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo)
+    @assert found
     f2 = BigInt(1) << valuation(gcd(alpha), 2)
     alpha = div(alpha, f2)
     q = div(q, f2^2)
@@ -256,6 +243,5 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
             return !is_infinity(xTPLe(xP3check, a24_to_a24pm(a24), ExponentOfThree - 1))
         end
     end
-    @assert false
     return false
 end
