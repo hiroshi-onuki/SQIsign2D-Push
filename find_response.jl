@@ -13,11 +13,13 @@ function benchmark_test(param::Module, num::Int, num_pk::Int)
         m = "message to sign"
         count = 0
         for k in 1:num
-            found, bs, ideal_check = param.signing(pk, sk, m, global_data)
+            found, bsnorm, bs, ideal_check = param.signing(pk, sk, m, global_data)
             if !found
                 count += 1
+                println(bs)
+                println(bsnorm)
+                println(ideal_check)
             end
-            #print("\r($k/$num) done. fail: $count")
         end
         println("fail response: $count/$num")
     end

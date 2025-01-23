@@ -75,7 +75,7 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     I = involution_product(Icom, IskIchl)
     alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo, e3, IskIchl)
     if found
-        return true, BigInt[], false
+        return true, BigInt[], nothing, false
     else
         q(x, y) = quadratic_form(QOrderElem(x), QOrderElem(y))
         Imatrix = ideal_to_matrix(I)
@@ -83,7 +83,7 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         LLLmat = Imatrix * H
         red_basis = [LLLmat[:, i] for i in 1:4]
         bs = [QOrderElem(red_basis[i][1], red_basis[i][2], red_basis[i][3], red_basis[i][4]) for i in 1:4]
-        return false, [div(norm(b), norm(I)) for b in bs], LeftIdeal(bs[1], norm(I) * 3) == LeftIdeal(bs[2], norm(I) * 3)
+        return false, [div(norm(b), norm(I)) for b in bs], bs, LeftIdeal(bs[1], norm(I) * 3) == LeftIdeal(bs[2], norm(I) * 3)
     end
 
     f2 = BigInt(1) << valuation(gcd(alpha), 2)
