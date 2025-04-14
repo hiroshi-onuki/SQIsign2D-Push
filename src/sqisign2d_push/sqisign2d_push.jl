@@ -1,5 +1,29 @@
 using SHA
 
+function RandomPrime(B::Integer)
+    n = rand(1:B)
+    while n % 4 != 3 || !is_prime(n)
+        n = rand(1:B)
+    end
+    return n
+end
+
+function RandomIdeal(N::Integer)
+    @assert N > 2 && is_prime(N)
+    e = Log2p
+    alpha, found = FullRepresentInteger(N << e)
+    @assert found
+    return LeftIdeal(alpha, N)
+end
+
+function UniformRandomIdeal(N::Integer, I::LeftIdeal)
+    @assert N % 4 == 3
+    n = rand(0:N)
+    n == 0 && return I
+    alpha = n + Quaternion_i
+    return pushforward(alpha, I)
+end
+
 # return a random prime <= 2^KLPT_secret_key_prime_size and = 3 mod 4
 function random_secret_prime()
     B = BigInt(floor(p^(1/4)))
@@ -73,7 +97,16 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     gen_com = element_exact_norm(Icom, three_to_e3^2, 3)
     e3 = valuation(gcd(involution(gen_com) * IskIchl), 3)
     I = involution_product(Icom, IskIchl)
-    alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo, e3, IskIchl)
+    N1 = RandomPrime(BigInt(2) << (2*Log2p))
+    N2 = RandomPrime(BigInt(2) << (2*Log2p))
+    @assert N1 != N2
+    I1 = RandomIdeal(N1)
+    I2 = RandomIdeal(N2)
+    I1 = UniformRandomIdeal(N1, I1)
+    I2 = UniformRandomIdeal(N2, I2)
+    I = involution_product(I1, I2)
+    @assert norm(I) == N1*N2
+    alpha, q, found = element_for_response(I, N1*N2, ExponentOfTwo, e3, IskIchl)
     if found
         return true, BigInt[], nothing, false
     else
