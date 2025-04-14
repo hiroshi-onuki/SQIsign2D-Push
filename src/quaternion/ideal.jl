@@ -123,12 +123,6 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int, e::Int, J::LeftI
                 v = sum([x[i]*red_basis[i] for i in 1:4])
                 alpha = QOrderElem(v[1], v[2], v[3], v[4])
                 newN = div(norm(alpha), nI)
-                Jalpha = ideal_transform(J, alpha, norm(J))
-                JalphaJ = Jalpha * J
-                g = gcd(JalphaJ)
-                @assert g % BigInt(3)^e == 0
-                g = div(g, BigInt(3)^e)
-                g % 3 == 0 && @assert newN % 3 == 0
                 newN % 3 != 0 && return alpha, newN, true
             else
                 return Quaternion_0, 0, false
