@@ -640,98 +640,6 @@ function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}, s
     return a24, Ps
 end
 
-# root of x^2 + Ax + 1
-function compute_alpha(A::FqFieldElem)
-    d = square_root(A^2 - 4)
-    return (-A + d) / 2
-end
-
-# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is above (0, 0)
-function point_full2power_above_montgomery(A::FqFieldElem, global_data::GlobalData)
-    hint = 1
-    i = gen(global_data.Fp2)
-    N = length(global_data.SQNSQs)
-    alpha = compute_alpha(A)
-    x = i
-    while true
-        if hint < N
-            x = global_data.SQNSQs[hint]
-        else
-            x = i + hint
-            if !is_square(x) || is_square(x - 1)
-                hint += 1
-                continue
-            end
-        end
-        x = x * alpha
-        is_square(x * (x^2 + A * x + 1)) && break
-        hint += 1
-    end
-    hint -= 1 # hint starts from 0
-
-    @assert hint < 1 << 8
-
-    return x, hint
-end
-
-# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is not above (0, 0)
-function point_full2power_not_above_montgomery(A::FqFieldElem, global_data::GlobalData)
-    hint = 1
-    i = gen(global_data.Fp2)
-    N = length(global_data.NSQs)
-    x = i
-    while true
-        if hint < N
-            x = global_data.NSQs[hint]
-        else
-            x = i + hint
-            if is_square(x)
-                hint += 1
-                continue
-            end
-        end
-        is_square(x * (x^2 + A * x + 1)) && break
-        hint += 1
-    end
-    hint -= 1 # hint starts from 0
-
-    @assert hint < 1 << 8
-
-    return x, hint
-end
-
-# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is above (0, 0)
-function point_full2power_above_montgomery_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
-    i = gen(global_data.Fp2)
-    N = length(global_data.SQNSQs)
-    alpha = compute_alpha(A)
-    hint += 1
-
-    if hint < N
-        x = global_data.SQNSQs[hint]
-    else
-        x = i + hint
-    end
-    x = x * alpha
-
-    return x
-end
-
-# return a point P in E(Fp^2) \ [2]E(Fp^2) s.t. P is not above (0, 0)
-function point_full2power_not_above_montgomery_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
-    i = gen(global_data.Fp2)
-    N = length(global_data.NSQs)
-    hint += 1
-
-    if hint < N
-        x = global_data.NSQs[hint]
-    else
-        x = i + hint
-    end
-
-    return x
-end
-
 # compute lam, mu s.t. y - (lam * x + mu) is the tangent line at T on E_A
 function compute_lam_mu(A::FqFieldElem, xT::Proj1{FqFieldElem})
     x3 = affine(xT)
@@ -747,7 +655,7 @@ function point_full3power(A::FqFieldElem, cofactor::BigInt, full_exp::Int, globa
     a24 = A_to_a24(A)
     a24pm = a24_to_a24pm(a24)
     u = global_data.Elligator2u
-    N = length(global_data.NSQs)
+    N = length(global_data.Elligator2)
     x = parent(A)(1)
     lam, mu = 0, 0
     is_neg = 0
@@ -812,7 +720,7 @@ function point_full3power_not_above(A::FqFieldElem, lam::FqFieldElem, mu::FqFiel
     hint_start &= mask
     hint = hint_start + 2
     u = global_data.Elligator2u
-    N = length(global_data.NSQs)
+    N = length(global_data.Elligator2)
     x = parent(A)(1)
     is_neg = 0
 
@@ -846,7 +754,7 @@ end
 # return a point P in E(Fp^2) \ [3]E(Fp^2) from hint
 function point_full3power_from_hint(A::FqFieldElem, hint::Int, global_data::GlobalData)
     u = global_data.Elligator2u
-    N = length(global_data.NSQs)
+    N = length(global_data.Elligator2)
     mask = 0x7F
     is_neg = hint >> 7
     hint &= mask
@@ -867,7 +775,7 @@ end
 # return a point P in E(Fp^2) \ [3]E(Fp^2) from hint
 function point_full3power_not_above_from_hint(A::FqFieldElem, hint1::Int, hint2::Int, global_data::GlobalData)
     u = global_data.Elligator2u
-    N = length(global_data.NSQs)
+    N = length(global_data.Elligator2)
     mask = 0x7F
     is_neg = hint2 >> 7
     hint1 &= mask

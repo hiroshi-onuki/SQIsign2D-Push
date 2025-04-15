@@ -69,22 +69,15 @@ function make_precomputed_values()
 
     i = gen(Fp2)
     x = 2*i + 1
-    NSQs = FqFieldElem[]
-    SQNSQs = FqFieldElem[]
-    while length(NSQs) < NumOfNSQs || length(SQNSQs) < NumOfNSQs
-        if !is_square(x)
-            length(NSQs) < NumOfNSQs && push!(NSQs, x)
-        elseif !is_square(x - 1)
-            length(SQNSQs) < NumOfNSQs && push!(SQNSQs, x)
-        end
+    while is_square(x)
         x += 1
     end
 
-    u = NSQs[1]
+    u = x
     Elligator2 = FqFieldElem[]
     for r in 1:NumOfElligator2
         push!(Elligator2, -1/(1 + u*r^2))
     end
 
-    return GlobalData(Fp2, E0, NSQs, SQNSQs, Elligator2, u)
+    return GlobalData(Fp2, E0, Elligator2, u)
 end
