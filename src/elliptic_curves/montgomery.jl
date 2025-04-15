@@ -888,26 +888,67 @@ end
 
 # return a basis of E[2^e]
 function basis_2e(A::FqFieldElem, cofactor::BigInt, global_data::GlobalData)
+    Fp2 = global_data.Fp2
+    i = gen(global_data.Fp2)
     a24 = A_to_a24(A)
-    x1, hint1 = point_full2power_above_montgomery(A, global_data)
-    x2, hint2 = point_full2power_not_above_montgomery(A, global_data)
-
+    if is_square(A)
+        hA = 1
+    else
+        hA = 0
+    end
+    h = 0
+    x1 = Fp2(0)
+    x2 = Fp2(0)
+    if hA == 1
+        while true
+            h += 1
+            x1 = -1/(1 + i * h) * A
+            !is_square(base_field(Fp2)(1 + h^2)) && is_square(x1 * (x1^2 + A * x1 + 1)) && break
+        end
+    else
+        while true
+            h += 1
+            x1 = h * A
+            is_square(x1 * (x1^2 + A * x1 + 1)) && break
+        end
+    end
+    x2 = -x1 - A
     xP = ladder(cofactor, Proj1(x1), a24)
-    xQ = ladder(cofactor, Proj1(x2), a24)
-    xPQ = x_add_sub(xP, xQ, a24)
+    xPQ = ladder(cofactor, Proj1(x2), a24)
+    xQ = x_add_sub(xP, xPQ, a24)
+
+    if h >= 1 << 7
+        hint = 0
+    else
+        hint = (h << 1) + hA
+    end
     
-    return xP, xQ, xPQ, hint1, hint2
+    return xP, xQ, xPQ, hint
 end
 
 # return a basis of E[2^e] from hint
-function basis_2e_from_hint(A::FqFieldElem, cofactor::BigInt, hint1::Int, hint2::Int, global_data::GlobalData)
+function basis_2e_from_hint(A::FqFieldElem, cofactor::BigInt, hint::Int, global_data::GlobalData)
+    if hint == 0
+        xP, xQ, xPQ, _ = basis_2e(A, cofactor, global_data)
+        return xP, xQ, xPQ
+    end
+
+    Fp2 = global_data.Fp2
+    i = gen(global_data.Fp2)
     a24 = A_to_a24(A)
-    x1 = point_full2power_above_montgomery_from_hint(A, hint1, global_data)
-    x2 = point_full2power_not_above_montgomery_from_hint(A, hint2, global_data)
+    hA = hint & 1
+    h = hint >> 1
+
+    if hA == 1
+        x1 = -1/(1 + i * h) * A
+    else
+        x1 = h * A
+    end
+    x2 = -x1 - A
 
     xP = ladder(cofactor, Proj1(x1), a24)
-    xQ = ladder(cofactor, Proj1(x2), a24)
-    xPQ = x_add_sub(xP, xQ, a24)
+    xPQ = ladder(cofactor, Proj1(x2), a24)
+    xQ = x_add_sub(xP, xPQ, a24)
 
     return xP, xQ, xPQ
 end
