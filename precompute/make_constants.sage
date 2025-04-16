@@ -51,19 +51,19 @@ def make_constants(p, e2, e3, file_name):
 
 # level1
 set_random_seed(0)
-e2 = 132
-e3 = 80
-p = 2^e2 * 3^e3 * 7 - 1
+e2 = 131
+e3 = 78
+p = 2^e2 * 3^e3 - 1
 make_constants(p, e2, e3, "level1torsion.txt")
 
 # level3
-e2 = 194
-e3 = 121
+e2 = 191
+e3 = 117
 p = 2^e2 * 3^e3 - 1
 make_constants(p, e2, e3, "level3torsion.txt")
 
 # level5
-e2 = 261
-e3 = 160
-p = 2^e2 * 3^e3 * 31 - 1
+e2 = 263
+e3 = 156
+p = 2^e2 * 3^e3 - 1
 make_constants(p, e2, e3, "level5torsion.txt")

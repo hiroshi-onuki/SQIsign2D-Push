@@ -1,5 +1,5 @@
-const ExponentOfTwo = 194
-const ExponentOfThree = 121
+const ExponentOfTwo = 191
+const ExponentOfThree = 117
 const two_to_e2 = BigInt(2)^ExponentOfTwo
 const three_to_e3 = BigInt(3)^ExponentOfThree
 const Cofactor = 1

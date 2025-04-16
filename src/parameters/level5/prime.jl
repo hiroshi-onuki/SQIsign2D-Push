@@ -1,8 +1,8 @@
-const ExponentOfTwo = 261
-const ExponentOfThree = 160
+const ExponentOfTwo = 263
+const ExponentOfThree = 156
 const two_to_e2 = BigInt(2)^ExponentOfTwo
 const three_to_e3 = BigInt(3)^ExponentOfThree
-const Cofactor = 31
+const Cofactor = 1
 const CofactorWRT2 = BigInt(3)^ExponentOfThree * Cofactor
 const CofactorWRT3 = BigInt(2)^ExponentOfTwo * Cofactor
 const p = BigInt(2)^ExponentOfTwo * BigInt(3)^ExponentOfThree * Cofactor - 1
