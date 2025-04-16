@@ -144,6 +144,39 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     end 
 end
 
+function check_pk(Apk::FqFieldElem, xP3::Proj1{FqFieldElem}, xQ3::Proj1{FqFieldElem}, global_data::GlobalData)
+    a24 = A_to_a24(Apk)
+    xP = ladder(div(three_to_e3, 3), xP3, a24)
+    xQ = ladder(div(three_to_e3, 3), xQ3, a24)
+    if is_infinity(xP) || is_infinity(xQ) || xP == xQ
+        println("xP == xQ")
+        return false
+    end
+    xP = ladder(3, xP, a24)
+    xQ = ladder(3, xQ, a24)
+    if !is_infinity(xP) || !is_infinity(xQ)
+        println("xP != xQ")
+        return false
+    end
+
+    i = gen(global_data.Fp2)
+    h = 0
+    x = global_data.Fp2(0)
+    while true
+        h += 1
+        x = 1 + i*h
+        !is_square(x) && is_square(x*(x^2 + Apk * x + 1)) && break
+    end
+    xT = Proj1(x)
+    xT = ladder(CofactorWRT2, xT, a24)
+    xT = xDBLe(xT, a24, ExponentOfTwo - 1)
+    if is_infinity(xT)
+        println("xT == infinity")
+        return false
+    end
+    return is_infinity(xDBL(xT, a24))
+end
+
 function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::GlobalData)
     Apk = bytes_to_Fq(pk[1:Fp2ByteLength], global_data.Fp2)
     hint1pk = Int(pk[Fp2ByteLength+1])
@@ -179,6 +212,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
 
     # compute Echl
     xP3pk, xQ3pk, xPQ3pk = basis_3e_from_hint(Apk, CofactorWRT3, hint1pk, hint2pk, global_data)
+    check_pk(Apk, xP3pk, xQ3pk, global_data) || return false
     xKchl = ladder3pt(chl, xP3pk, xQ3pk, xPQ3pk, a24pk)
     a24chl, image_check = three_e_iso(a24pk, xKchl, ExponentOfThree, [xQ3pk], StrategiesDim1Three[ExponentOfThree])
     a24chl, image_check = Montgomery_normalize(a24chl, image_check)
