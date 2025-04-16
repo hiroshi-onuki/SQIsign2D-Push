@@ -189,6 +189,14 @@ function check_aux(Aaux::FqFieldElem, xP2::Proj1{FqFieldElem}, xQ2::Proj1{FqFiel
     return true
 end
 
+function check_isotropic(a24_1::Proj1{FqFieldElem}, a24_2::Proj1{FqFieldElem},
+                        xP1::Proj1{FqFieldElem}, xQ1::Proj1{FqFieldElem}, xPQ1::Proj1{FqFieldElem},
+                        xP2::Proj1{FqFieldElem}, xQ2::Proj1{FqFieldElem}, xPQ2::Proj1{FqFieldElem},
+                        e::Int)
+    w1n, w1d, w2n, w2d = two_Weil_pairings_2power(a24_1, a24_2, xP1, xQ1, xPQ1, xP2, xQ2, xPQ2, e)
+    return w1n * w2n == w1d * w2d
+end
+
 function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::GlobalData)
     Apk = bytes_to_Fq(pk[1:Fp2ByteLength], global_data.Fp2)
     hint1pk = Int(pk[Fp2ByteLength+1])
@@ -267,8 +275,16 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     O = infinity_point(global_data.Fp2)
     eval_point = [CouplePoint(xP3check, O)]
     if e_dim2_torsion > e_dim2
+        xP1 = xDBLe(K1[1], a24chl_d, 2)
+        xQ1 = xDBLe(K2[1], a24chl_d, 2)
+        xPQ1 = xDBLe(K12[1], a24chl_d, 2)
+        xP2 = xDBLe(K1[2], a24aux, 2)
+        xQ2 = xDBLe(K2[2], a24aux, 2)
+        xPQ2 = xDBLe(K12[2], a24aux, 2)
+        check_isotropic(a24chl_d, a24aux, xP1, xQ1, xPQ1, xP2, xQ2, xPQ2, e_dim2) || return false
         Es, image_dim2 = product_isogeny(a24chl_d, a24aux, K1, K2, K12, eval_point, e_dim2, StrategiesDim2[e_dim2])
     else
+        check_isotropic(a24chl_d, a24aux, K1[1], K2[1], K12[1], K1[2], K2[2], K12[2], e_dim2) || return false
         Es, image_dim2 = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, eval_point, e_dim2, StrategiesDim2[e_dim2])
     end
 
