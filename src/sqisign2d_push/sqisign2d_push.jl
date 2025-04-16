@@ -33,11 +33,15 @@ function commitment(global_data::GlobalData)
     return FastDoublePath(false, global_data)
 end
 
-function challenge(A::FqFieldElem, m::String)
+function challenge(Apk::FqFieldElem, Acom::FqFieldElem, m::String)
     if Is256Hash
-        h = sha3_256(string(A) * m)
+        Hash = sha3_256
     else
-        h = sha3_512(string(A) * m)
+        Hash = sha3_512
+    end
+    h = string(Apk) * string(Acom) * m
+    for _ in 1:NumOfHash
+        h = Hash(h)
     end
 
     c = BigInt(0)
@@ -59,7 +63,7 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         Acom = Montgomery_coeff(a24com)
 
         # challenge
-        chl = challenge(Acom, m)
+        chl = challenge(Apk, Acom, m)
         a, b = M3pk * [1, chl]
         a, b, c, d = global_data.E0_data.M44inv_chall * [b, 0, -a, 0]
         alpha = QOrderElem(a, b, c, d)
@@ -237,7 +241,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
         a24, image_check = Montgomery_normalize(a24, [image_dim2[1][i]])
         A = Montgomery_coeff(a24)
         xP3check = image_check[1]
-        if challenge(A, m) == chl
+        if challenge(Apk, A, m) == chl
             return !is_infinity(xTPLe(xP3check, a24_to_a24pm(a24), ExponentOfThree - 1))
         end
     end

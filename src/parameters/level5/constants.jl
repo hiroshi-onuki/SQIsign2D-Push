@@ -4,6 +4,7 @@ const KLPT_repres_num_gamma_trial = 32768
 const ChallengeDegree = three_to_e3
 const ChallengeByteLength = Int(ceil(ceil(log(2, ChallengeDegree)) / 8))
 const Is256Hash = ChallengeByteLength <= 32
+const NumOfHash = 512
 const Dim2KernelCoeffByteLength = Int(ceil(ExponentOfTwo/8))
 const Fp2ByteLength = Int(ceil(Log2p/8)) * 2
 const DegreeExponentByteLength = Int(ceil(log(2, ExponentOfTwo)/8))
