@@ -149,13 +149,11 @@ function check_pk(Apk::FqFieldElem, xP3::Proj1{FqFieldElem}, xQ3::Proj1{FqFieldE
     xP = ladder(div(three_to_e3, 3), xP3, a24)
     xQ = ladder(div(three_to_e3, 3), xQ3, a24)
     if is_infinity(xP) || is_infinity(xQ) || xP == xQ
-        println("xP == xQ")
         return false
     end
     xP = ladder(3, xP, a24)
     xQ = ladder(3, xQ, a24)
     if !is_infinity(xP) || !is_infinity(xQ)
-        println("xP != xQ")
         return false
     end
 
@@ -171,10 +169,24 @@ function check_pk(Apk::FqFieldElem, xP3::Proj1{FqFieldElem}, xQ3::Proj1{FqFieldE
     xT = ladder(CofactorWRT2, xT, a24)
     xT = xDBLe(xT, a24, ExponentOfTwo - 1)
     if is_infinity(xT)
-        println("xT == infinity")
         return false
     end
     return is_infinity(xDBL(xT, a24))
+end
+
+function check_aux(Aaux::FqFieldElem, xP2::Proj1{FqFieldElem}, xQ2::Proj1{FqFieldElem})
+    a24 = A_to_a24(Aaux)
+    xP = xDBLe(xP2, a24, ExponentOfTwo - 1)
+    xQ = xDBLe(xQ2, a24, ExponentOfTwo - 1)
+    if is_infinity(xP) || is_infinity(xQ) || xP == xQ
+        return false
+    end
+    xP = xDBL(xP, a24)
+    xQ = xDBL(xQ, a24)
+    if !is_infinity(xP) || !is_infinity(xQ)
+        return false
+    end
+    return true
 end
 
 function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::GlobalData)
@@ -243,6 +255,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     # compute the deterministic basis on Eaux
     a24aux = A_to_a24(Aaux)
     xP2aux, xQ2aux, xPQ2aux = basis_2e_from_hint(Aaux, CofactorWRT2, hint_aux, global_data)
+    check_aux(Aaux, xP2aux, xQ2aux) || return false
     xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
     xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
