@@ -1,15 +1,5 @@
 using SHA
 
-# return a random prime <= 2^KLPT_secret_key_prime_size and = 3 mod 4
-function random_secret_prime()
-    B = BigInt(floor(p^(1/4)))
-    n = rand(1:B)
-    while !is_probable_prime(n)
-        n = rand(1:B)
-    end
-    return n
-end
-
 function key_gen(global_data::GlobalData)
     a24pk, xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk, J3, J2, alpha = FastDoublePath(true, global_data)
     Apk = Montgomery_coeff(a24pk)
