@@ -53,99 +53,101 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
     a24pk = A_to_a24(Apk)
     xP2pk, xQ2pk, xPQ2pk, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, M3pk, I3sk, I2sk, alpha_sk = sk
 
-    # commitment
-    a24mid, a24com, xK1, xK2, xP2mid, xQ2mid, xPQmid, xP2com, xQ2com, xPQ2com, Icom = commitment(global_data)
-    Acom = Montgomery_coeff(a24com)
+    while true
+        # commitment
+        a24mid, a24com, xK1, xK2, xP2mid, xQ2mid, xPQmid, xP2com, xQ2com, xPQ2com, Icom = commitment(global_data)
+        Acom = Montgomery_coeff(a24com)
 
-    # challenge
-    chl = challenge(Acom, m)
-    a, b = M3pk * [1, chl]
-    a, b, c, d = global_data.E0_data.M44inv_chall * [b, 0, -a, 0]
-    alpha = QOrderElem(a, b, c, d)
-    Ichl = LeftIdeal(alpha, ChallengeDegree)
-    Kchl = ladder3pt(chl, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, a24pk)
-    a24chl, (xP2chl, xQ2chl, xPQ2chl) = three_e_iso(a24pk, Kchl, ExponentOfThree, [xP2pk, xQ2pk, xPQ2pk], StrategiesDim1Three[ExponentOfThree])
-    a24chl, (xP2chl, xQ2chl, xPQ2chl) = Montgomery_normalize(a24chl, [xP2chl, xQ2chl, xPQ2chl])
+        # challenge
+        chl = challenge(Acom, m)
+        a, b = M3pk * [1, chl]
+        a, b, c, d = global_data.E0_data.M44inv_chall * [b, 0, -a, 0]
+        alpha = QOrderElem(a, b, c, d)
+        Ichl = LeftIdeal(alpha, ChallengeDegree)
+        Kchl = ladder3pt(chl, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, a24pk)
+        a24chl, (xP2chl, xQ2chl, xPQ2chl) = three_e_iso(a24pk, Kchl, ExponentOfThree, [xP2pk, xQ2pk, xPQ2pk], StrategiesDim1Three[ExponentOfThree])
+        a24chl, (xP2chl, xQ2chl, xPQ2chl) = Montgomery_normalize(a24chl, [xP2chl, xQ2chl, xPQ2chl])
 
-    # find alpha in bar(Icom)IskIcha suitable for the response
-    IskIchl = intersection(I2sk, Ichl)
-    IskIchl = div(IskIchl * alpha_sk, two_to_e2^2)
-    I = involution_product(Icom, IskIchl)
-    alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo)
-    @assert found
-    f2 = BigInt(1) << valuation(gcd(alpha), 2)
-    alpha = div(alpha, f2)
-    q = div(q, f2^2)
+        # find alpha in bar(Icom)IskIcha suitable for the response
+        IskIchl = intersection(I2sk, Ichl)
+        IskIchl = div(IskIchl * alpha_sk, two_to_e2^2)
+        I = involution_product(Icom, IskIchl)
+        alpha, q, found = element_for_response(I, three_to_e3^4 * ChallengeDegree, ExponentOfTwo)
+        !found && continue
+        f2 = BigInt(1) << valuation(gcd(alpha), 2)
+        alpha = div(alpha, f2)
+        q = div(q, f2^2)
 
-    # compute (q', e_dim1, e_dim2) s.t. q = q' * 2^e_dim1 and q' < 2^e_dim2
-    e_dim1 = valuation(q, 2)
-    two_to_e_dim1 = BigInt(1) << e_dim1
-    qd = q >> e_dim1
-    e_dim2 = 0
-    two_to_e_dim2 = BigInt(1)
-    while two_to_e_dim2 < qd
-        e_dim2 += 1
-        two_to_e_dim2 <<= 1
-    end
-    e = ExponentOfTwo - e_dim1 - e_dim2
-    if e >= 2
-        e_dim2_torsion = e_dim2 + 2
-    else
-        e_dim2_torsion = e_dim2
-    end
+        # compute (q', e_dim1, e_dim2) s.t. q = q' * 2^e_dim1 and q' < 2^e_dim2
+        e_dim1 = valuation(q, 2)
+        two_to_e_dim1 = BigInt(1) << e_dim1
+        qd = q >> e_dim1
+        e_dim2 = 0
+        two_to_e_dim2 = BigInt(1)
+        while two_to_e_dim2 < qd
+            e_dim2 += 1
+            two_to_e_dim2 <<= 1
+        end
+        e = ExponentOfTwo - e_dim1 - e_dim2
+        if e >= 2
+            e_dim2_torsion = e_dim2 + 2
+        else
+            e_dim2_torsion = e_dim2
+        end
 
-    # compute the image of phi_rsp(P2com, Q2com)
-    c = invmod(three_to_e3^2 * ChallengeDegree, two_to_e2)
-    xP2rsp, xQ2rsp, xPQ2rsp = action_on_torsion_basis(involution(alpha), a24chl, xP2chl, xQ2chl, xPQ2chl, global_data.E0_data, c)
-    
-    # find the kernel of dual of the even part of the response isogeny
-    xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, hint_chl = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2, global_data)
-    n1, n2, n3, n4 = ec_bi_dlog(a24chl, BasisData(xP2rsp, xQ2rsp, xPQ2rsp), BasisData(xP2chl_fix, xQ2chl_fix, xPQ2chl_fix), 2, ExponentOfTwo)
-    Mchl = [n1 n3; n2 n4]
+        # compute the image of phi_rsp(P2com, Q2com)
+        c = invmod(three_to_e3^2 * ChallengeDegree, two_to_e2)
+        xP2rsp, xQ2rsp, xPQ2rsp = action_on_torsion_basis(involution(alpha), a24chl, xP2chl, xQ2chl, xPQ2chl, global_data.E0_data, c)
+        
+        # find the kernel of dual of the even part of the response isogeny
+        xP2chl_fix, xQ2chl_fix, xPQ2chl_fix, hint_chl = basis_2e(Montgomery_coeff(a24chl), CofactorWRT2, global_data)
+        n1, n2, n3, n4 = ec_bi_dlog(a24chl, BasisData(xP2rsp, xQ2rsp, xPQ2rsp), BasisData(xP2chl_fix, xQ2chl_fix, xPQ2chl_fix), 2, ExponentOfTwo)
+        Mchl = [n1 n3; n2 n4]
 
-    # compute an auxiliary isogeny
-    d_aux = two_to_e_dim2 - qd
-    e3_dim1 = valuation(d_aux, 3)
-    d_aux_d = div(d_aux, BigInt(3)^e3_dim1)
-    a24aux, xP2aux, xQ2aux, xPQ2aux = PushRandIsog(d_aux_d, a24mid, xK1, xK2, xP2mid, xQ2mid, xPQmid, global_data)
-    if e3_dim1 > 0
-        xK3aux = random_point_order_l_power(a24aux, p + 1, 3, e3_dim1)
-        a24aux, (xP2aux, xQ2aux, xPQ2aux) = three_e_iso(a24aux, xK3aux, e3_dim1, [xP2aux, xQ2aux, xPQ2aux])
-    end
-    a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
-    Aaux = Montgomery_coeff(a24aux)
-    xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, hint_aux = basis_2e(Aaux, CofactorWRT2, global_data)
-    n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, ExponentOfTwo)
-    Maux = [n1 n3; n2 n4]
+        # compute an auxiliary isogeny
+        d_aux = two_to_e_dim2 - qd
+        e3_dim1 = valuation(d_aux, 3)
+        d_aux_d = div(d_aux, BigInt(3)^e3_dim1)
+        a24aux, xP2aux, xQ2aux, xPQ2aux = PushRandIsog(d_aux_d, a24mid, xK1, xK2, xP2mid, xQ2mid, xPQmid, global_data)
+        if e3_dim1 > 0
+            xK3aux = random_point_order_l_power(a24aux, p + 1, 3, e3_dim1)
+            a24aux, (xP2aux, xQ2aux, xPQ2aux) = three_e_iso(a24aux, xK3aux, e3_dim1, [xP2aux, xQ2aux, xPQ2aux])
+        end
+        a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
+        Aaux = Montgomery_coeff(a24aux)
+        xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, hint_aux = basis_2e(Aaux, CofactorWRT2, global_data)
+        n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, ExponentOfTwo)
+        Maux = [n1 n3; n2 n4]
 
-    # matrix represent (Pchl, Qchl) = M(Pchl_fix, Qchl_fix) such that
-    # [2^(e2 - e_dim1)]P or [2^(e2 - e_dim1)]Q is the kernel of the dual isogeny of the even part of the response isogeny
-    # and the images of (Pchl, Qchl) under that isogeny and (Paux_fix, Qaux_fix) give the kernel of the 2-dimensional isogeny in the verification
-    Mrsp = (Mchl * invmod_2x2(Maux, two_to_e2)) .% two_to_e2
+        # matrix represent (Pchl, Qchl) = M(Pchl_fix, Qchl_fix) such that
+        # [2^(e2 - e_dim1)]P or [2^(e2 - e_dim1)]Q is the kernel of the dual isogeny of the even part of the response isogeny
+        # and the images of (Pchl, Qchl) under that isogeny and (Paux_fix, Qaux_fix) give the kernel of the 2-dimensional isogeny in the verification
+        Mrsp = (Mchl * invmod_2x2(Maux, two_to_e2)) .% two_to_e2
 
-    # make the signature
-    sign = Vector{UInt8}(undef, SignatureByteLength)
-    idx = 1
-    sign[idx:idx+Fp2ByteLength-1] = Fq_to_bytes(Aaux)
-    idx += Fp2ByteLength
-    sign[idx:idx+ChallengeByteLength-1] = integer_to_bytes(chl, ChallengeByteLength)
-    idx += ChallengeByteLength
-    sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim1, DegreeExponentByteLength)
-    idx += DegreeExponentByteLength
-    sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim2, DegreeExponentByteLength)
-    idx += DegreeExponentByteLength
-    sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[1, 1], Dim2KernelCoeffByteLength)
-    idx += Dim2KernelCoeffByteLength
-    sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[2, 1], Dim2KernelCoeffByteLength)
-    idx += Dim2KernelCoeffByteLength
-    sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[1, 2], Dim2KernelCoeffByteLength)
-    idx += Dim2KernelCoeffByteLength
-    sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[2, 2], Dim2KernelCoeffByteLength)
-    idx += Dim2KernelCoeffByteLength
-    sign[idx] = integer_to_bytes(hint_chl, 1)[1]
-    sign[idx+1] = integer_to_bytes(hint_aux, 1)[1]
+        # make the signature
+        sign = Vector{UInt8}(undef, SignatureByteLength)
+        idx = 1
+        sign[idx:idx+Fp2ByteLength-1] = Fq_to_bytes(Aaux)
+        idx += Fp2ByteLength
+        sign[idx:idx+ChallengeByteLength-1] = integer_to_bytes(chl, ChallengeByteLength)
+        idx += ChallengeByteLength
+        sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim1, DegreeExponentByteLength)
+        idx += DegreeExponentByteLength
+        sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim2, DegreeExponentByteLength)
+        idx += DegreeExponentByteLength
+        sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[1, 1], Dim2KernelCoeffByteLength)
+        idx += Dim2KernelCoeffByteLength
+        sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[2, 1], Dim2KernelCoeffByteLength)
+        idx += Dim2KernelCoeffByteLength
+        sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[1, 2], Dim2KernelCoeffByteLength)
+        idx += Dim2KernelCoeffByteLength
+        sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[2, 2], Dim2KernelCoeffByteLength)
+        idx += Dim2KernelCoeffByteLength
+        sign[idx] = integer_to_bytes(hint_chl, 1)[1]
+        sign[idx+1] = integer_to_bytes(hint_aux, 1)[1]
 
-    return sign
+        return sign
+    end 
 end
 
 function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::GlobalData)
