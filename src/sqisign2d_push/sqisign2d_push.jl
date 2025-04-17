@@ -103,9 +103,15 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         e3_dim1 = valuation(d_aux, 3)
         d_aux_d = div(d_aux, BigInt(3)^e3_dim1)
         a24aux, xP2aux, xQ2aux, xPQ2aux = PushRandIsog(d_aux_d, a24mid, xK1, xK2, xP2mid, xQ2mid, xPQmid, global_data)
-        if e3_dim1 > 0
-            xK3aux = random_point_order_l_power(a24aux, p + 1, 3, e3_dim1)
-            a24aux, (xP2aux, xQ2aux, xPQ2aux) = three_e_iso(a24aux, xK3aux, e3_dim1, [xP2aux, xQ2aux, xPQ2aux])
+        if e3_dim1 % 2 == 1
+            xK3aux = random_point_order_l(a24aux, p + 1, 3)
+            a24aux_pm, (xP2aux, xQ2aux, xPQ2aux) = three_iso(xK3aux, [xP2aux, xQ2aux, xPQ2aux])
+            a24aux = Proj1(a24aux_pm.X, a24aux_pm.X - a24aux_pm.Z)
+        end
+        if e3_dim1 > 1
+            xP2aux = ladder(BigInt(3)^div(e3_dim1, 2), xP2aux, a24aux)
+            xQ2aux = ladder(BigInt(3)^div(e3_dim1, 2), xQ2aux, a24aux)
+            xPQ2aux = ladder(BigInt(3)^div(e3_dim1, 2), xPQ2aux, a24aux)
         end
         a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
         Aaux = Montgomery_coeff(a24aux)
