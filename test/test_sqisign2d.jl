@@ -13,7 +13,7 @@ function check(param::Module, num::Int)
     end
 end
 
-num = 10
+num = 100
 check(SQIsign2D_Push.Level1, num)
 check(SQIsign2D_Push.Level3, num)
 check(SQIsign2D_Push.Level5, num)

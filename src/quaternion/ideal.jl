@@ -114,6 +114,8 @@ function element_for_response(I::LeftIdeal, nI::BigInt, a::Int)
             x[i] = Integer(ceil(-Z - U[i]) - 1)
         else
             if x != zeros(Integer, 4)
+                g = gcd(x)
+                x = [div(x[i], g) for i in 1:4]
                 v = sum([x[i]*red_basis[i] for i in 1:4])
                 alpha = QOrderElem(v[1], v[2], v[3], v[4])
                 newN = div(norm(alpha), nI)
