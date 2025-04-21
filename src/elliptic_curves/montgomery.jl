@@ -1,7 +1,8 @@
 export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
-    two_e_iso, three_iso, three_e_iso, Montgomery_normalize, basis_2e, basis_2e_from_hint, basis_3e, basis_3e_from_hint
+    two_e_iso, three_iso, three_e_iso, Montgomery_normalize, basis_2e, basis_2e_from_hint, basis_3e, basis_3e_from_hint,
+    three_isogeneous_coeff_to_kernel
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -616,15 +617,19 @@ function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}) w
 end
 
 # 3^e-isogeny using strategy. A = (a + 2)/4.
-function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}, strategy::Vector{Int}) where T <: RingElem
+function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}, strategy::Vector{Int}, output_neighbor=0) where T <: RingElem
     a24pm = Proj1(a24.X, a24.X - a24.Z)
     S = [e]
     Ps = vcat(Qs, [P])
     i = 1
+    a24_neighbor = a24
     while length(S) > 0
         h = pop!(S)
         K = pop!(Ps)
         if h == 1
+            if length(S) == 0 && output_neighbor == -1
+                a24_neighbor = Proj1(a24pm.X, a24pm.X - a24pm.Z)
+            end
             a24pm, Ps = three_iso(K, Ps)
             S = [h - 1 for h in S]
         else
@@ -637,7 +642,11 @@ function three_e_iso(a24::Proj1{T}, P::Proj1{T}, e::Int, Qs::Vector{Proj1{T}}, s
         end
     end
     a24 = Proj1(a24pm.X, a24pm.X - a24pm.Z)
-    return a24, Ps
+    if output_neighbor == 0
+        return a24, Ps
+    else
+        return a24, Ps, a24_neighbor
+    end
 end
 
 # compute lam, mu s.t. y - (lam * x + mu) is the tangent line at T on E_A
@@ -937,4 +946,15 @@ function Montgomery_normalize(a24::Proj1{T}, Ps::Vector{Proj1{T}}) where T <: Ri
     end
 
     return A_to_a24(Ad), images
+end
+
+# return a generator of the kernel of a 3-isogeny from a24 to a24d
+function three_isogeneous_coeff_to_kernel(a24::Proj1{T}, a24d::Proj1{T}) where T <: RingElem
+    A = a24_to_A(a24)
+    Ad = a24_to_A(a24d)
+
+    X = A.X^3*Ad.Z^2 + 18*A.X^2*Ad.X*A.Z*Ad.Z - 3*A.X*Ad.X^2*A.Z^2 + 48*A.X*A.Z^2*Ad.Z^2 - 112*Ad.X*A.Z^3*Ad.Z
+    Z = 4*A.X^3*Ad.X*Ad.Z + 114*A.X^2*A.Z*Ad.Z^2 + 12*A.X*Ad.X*A.Z^2*Ad.Z + 2*Ad.X^2*A.Z^3 - 576*A.Z^3*Ad.Z^2
+
+    return Proj1(X, Z)
 end

@@ -240,8 +240,10 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     xP3pk, xQ3pk, xPQ3pk = basis_3e_from_hint(Apk, CofactorWRT3, hint1pk, hint2pk, global_data)
     check_pk(Apk, xP3pk, xQ3pk, global_data) || return false
     xKchl = ladder3pt(chl, xP3pk, xQ3pk, xPQ3pk, a24pk)
-    a24chl, image_check = three_e_iso(a24pk, xKchl, ExponentOfThree, [xQ3pk], StrategiesDim1Three[ExponentOfThree])
-    a24chl, image_check = Montgomery_normalize(a24chl, image_check)
+    a24chl, _, a24chl_neighbor = three_e_iso(a24pk, xKchl, ExponentOfThree, Proj1{FqFieldElem}[], StrategiesDim1Three[ExponentOfThree], -1)
+    xKchl_dual = three_isogeneous_coeff_to_kernel(a24chl, a24chl_neighbor)
+
+    a24chl, image_check = Montgomery_normalize(a24chl, [xKchl_dual])
     Achl = Montgomery_coeff(a24chl)
     xP2chl, xQ2chl, xPQ2chl = basis_2e_from_hint(Achl, CofactorWRT2, hint_chl, global_data)
     xP2chl, xQ2chl, xPQ2chl = action_of_matrix(Mrsp, a24chl, xP2chl, xQ2chl, xPQ2chl, ExponentOfTwo)
@@ -301,7 +303,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
         A = Montgomery_coeff(a24)
         xP3check = image_check[1]
         if challenge(Apk, A, m) == chl
-            return !is_infinity(xTPLe(xP3check, a24_to_a24pm(a24), ExponentOfThree - 1))
+            return !is_infinity(xP3check)
         end
     end
     return false
