@@ -2,7 +2,7 @@ export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
     two_e_iso, three_iso, three_e_iso, Montgomery_normalize, basis_2e, basis_2e_from_hint, basis_3e, basis_3e_from_hint,
-    three_isogeneous_coeff_to_kernel
+    three_isogenous_coeff_to_kernel
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -949,7 +949,7 @@ function Montgomery_normalize(a24::Proj1{T}, Ps::Vector{Proj1{T}}) where T <: Ri
 end
 
 # return a generator of the kernel of a 3-isogeny from a24 to a24d
-function three_isogeneous_coeff_to_kernel(a24::Proj1{T}, a24d::Proj1{T}) where T <: RingElem
+function three_isogenous_coeff_to_kernel(a24::Proj1{T}, a24d::Proj1{T}) where T <: RingElem
     A = a24_to_A(a24)
     Ad = a24_to_A(a24d)
 

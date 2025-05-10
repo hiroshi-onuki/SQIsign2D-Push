@@ -23,13 +23,13 @@ function commitment(global_data::GlobalData)
     return FastDoublePath(false, global_data)
 end
 
-function challenge(Apk::FqFieldElem, Acom::FqFieldElem, m::String)
+function challenge(Apk::FqFieldElem, j_com::FqFieldElem, m::String)
     if Is256Hash
         Hash = sha3_256
     else
         Hash = sha3_512
     end
-    h = string(Apk) * string(Acom) * m
+    h = string(Apk) * string(j_com) * m
     for _ in 1:NumOfHash
         h = Hash(h)
     end
@@ -53,7 +53,7 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         Acom = Montgomery_coeff(a24com)
 
         # challenge
-        chl = challenge(Apk, Acom, m)
+        chl = challenge(Apk, jInvariant_A(Acom), m)
         a, b = M3pk * [1, chl]
         a, b, c, d = global_data.E0_data.M44inv_chall * [b, 0, -a, 0]
         alpha = QOrderElem(a, b, c, d)
@@ -241,7 +241,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     check_pk(Apk, xP3pk, xQ3pk, global_data) || return false
     xKchl = ladder3pt(chl, xP3pk, xQ3pk, xPQ3pk, a24pk)
     a24chl, _, a24chl_neighbor = three_e_iso(a24pk, xKchl, ExponentOfThree, Proj1{FqFieldElem}[], StrategiesDim1Three[ExponentOfThree], -1)
-    xKchl_dual = three_isogeneous_coeff_to_kernel(a24chl, a24chl_neighbor)
+    xKchl_dual = three_isogenous_coeff_to_kernel(a24chl, a24chl_neighbor)
 
     a24chl, image_check = Montgomery_normalize(a24chl, [xKchl_dual])
     Achl = Montgomery_coeff(a24chl)
@@ -298,11 +298,9 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
 
     # check
     for i in 1:2
-        a24 = A_to_a24(Es[i])
-        a24, image_check = Montgomery_normalize(a24, [image_dim2[1][i]])
-        A = Montgomery_coeff(a24)
-        xP3check = image_check[1]
-        if challenge(Apk, A, m) == chl
+        j_com = jInvariant_A(Es[i])
+        xP3check = image_dim2[1][i]
+        if challenge(Apk, j_com, m) == chl
             return !is_infinity(xP3check)
         end
     end
