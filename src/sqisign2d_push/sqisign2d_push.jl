@@ -2,6 +2,8 @@ using SHA
 
 function key_gen(global_data::GlobalData)
     a24pk, xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk, J3, J2, alpha = FastDoublePath(true, global_data)
+    a24pk, images = Montgomery_normalize(a24pk, [xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk])
+    xP2pk, xQ2pk, xPQ2pk, xP3pk, xQ3pk, xPQ3pk = images
     Apk = Montgomery_coeff(a24pk)
 
     xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, hint1, hint2 = basis_3e(Apk, CofactorWRT3, ExponentOfThree, global_data)

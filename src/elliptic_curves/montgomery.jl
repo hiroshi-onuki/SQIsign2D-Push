@@ -2,7 +2,7 @@ export xDBL, xTPL, xADD, xDBLADD, xDBLe, xTPLe, ladder, ladder3pt, x_add_sub,
     linear_comb_2_e, random_point, random_point_order_l, random_point_order_l_power,
     Montgomery_coeff, A_to_a24, a24_to_A, a24_to_a24pm, jInvariant_a24, jInvariant_A,
     two_e_iso, three_iso, three_e_iso, Montgomery_normalize, basis_2e, basis_2e_from_hint, basis_3e, basis_3e_from_hint,
-    three_isogenous_coeff_to_kernel
+    three_isogenous_coeff_to_kernel, IsomorphismMontgomery
 
 # random point on a Montgomery curve: y^2 = x^3 + Ax^2 + x
 function random_point(A::T) where T <: RingElem
@@ -957,4 +957,26 @@ function three_isogenous_coeff_to_kernel(a24::Proj1{T}, a24d::Proj1{T}) where T 
     Z = 4*A.X^3*Ad.X*Ad.Z + 114*A.X^2*A.Z*Ad.Z^2 + 12*A.X*Ad.X*A.Z^2*Ad.Z + 2*Ad.X^2*A.Z^3 - 576*A.Z^3*Ad.Z^2
 
     return Proj1(X, Z)
+end
+
+# compute the images under an isomorphism from a24 to a24d of points
+# Algorithm 8.9 in SQIsign v 2.0 specification
+function IsomorphismMontgomery(a24::Proj1{T}, a24d::Proj1{T}, points::Vector{Proj1{T}}) where T <: RingElem
+    A = a24_to_A(a24)
+    Ad = a24_to_A(a24d)
+    
+    lambda_x = (2*Ad.X^3 - 9*Ad.X*Ad.Z^2) * (3*A.Z^3 - A.X^2*A.Z)
+    lambda_z = (2*A.X^3 - 9*A.X*A.Z^2) * (3*Ad.Z^3 - Ad.X^2*Ad.Z)
+    @assert lambda_x != 0
+    @assert lambda_z != 0
+
+    ret = Vector{Proj1{T}}(undef, length(points))
+    for i in 1:length(points)
+        P = points[i]
+        X = lambda_x * (3 * P.X * A.Z * Ad.Z + A.X * Ad.Z * P.Z) - lambda_z * Ad.X * A.Z * P.Z
+        Z = 3 * lambda_z * A.Z * Ad.Z * P.Z
+        ret[i] = Proj1(X, Z)
+    end
+
+    return ret
 end
