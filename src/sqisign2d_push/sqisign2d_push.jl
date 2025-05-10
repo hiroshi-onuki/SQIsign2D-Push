@@ -60,7 +60,6 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         Ichl = LeftIdeal(alpha, ChallengeDegree)
         Kchl = ladder3pt(chl, xP3pk_fix, xQ3pk_fix, xPQ3pk_fix, a24pk)
         a24chl, (xP2chl, xQ2chl, xPQ2chl) = three_e_iso(a24pk, Kchl, ExponentOfThree, [xP2pk, xQ2pk, xPQ2pk], StrategiesDim1Three[ExponentOfThree])
-        a24chl, (xP2chl, xQ2chl, xPQ2chl) = Montgomery_normalize(a24chl, [xP2chl, xQ2chl, xPQ2chl])
 
         # find alpha in bar(Icom)IskIcha suitable for the response
         IskIchl = intersection(I2sk, Ichl)
@@ -243,7 +242,6 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     a24chl, _, a24chl_neighbor = three_e_iso(a24pk, xKchl, ExponentOfThree, Proj1{FqFieldElem}[], StrategiesDim1Three[ExponentOfThree], -1)
     xKchl_dual = three_isogenous_coeff_to_kernel(a24chl, a24chl_neighbor)
 
-    a24chl, image_check = Montgomery_normalize(a24chl, [xKchl_dual])
     Achl = Montgomery_coeff(a24chl)
     xP2chl, xQ2chl, xPQ2chl = basis_2e_from_hint(Achl, CofactorWRT2, hint_chl, global_data)
     xP2chl, xQ2chl, xPQ2chl = action_of_matrix(Mrsp, a24chl, xP2chl, xQ2chl, xPQ2chl, ExponentOfTwo)
@@ -255,13 +253,13 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
         else
             xKchl_d = xDBLe(xQ2chl, a24chl, ExponentOfTwo - e_dim1)
         end
-        eval_points = vcat(image_check, [xP2chl, xQ2chl, xPQ2chl])
+        eval_points = vcat([xKchl_dual], [xP2chl, xQ2chl, xPQ2chl])
         a24chl_d, images = two_e_iso(a24chl, xKchl_d, e_dim1, eval_points)
         a24chl_d, images = Montgomery_normalize(a24chl_d, images)
         xP3check, xP2chl_d, xQ2chl_d, xPQ2chl_d = images
     else
         a24chl_d = a24chl
-        xP3check = image_check[1]
+        xP3check = xKchl_dual 
         xP2chl_d, xQ2chl_d, xPQ2chl_d = xP2chl, xQ2chl, xPQ2chl
     end
     xP2chl_d = xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
