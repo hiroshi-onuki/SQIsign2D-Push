@@ -21,48 +21,62 @@ function FastDoublePath(is_both::Bool, global_data::GlobalData)
     a24_3, images = three_e_iso(a24_0, K3, ExponentOfThree, [xP2e, xQ2e, xPQ2e], StrategiesDim1Three[ExponentOfThree])
     xP2e3, xQ2e3, xPQ2e3 = images
     a, b = kernel_coefficients(alpha, 2, ExponentOfTwo, E0_data.Matrices_2e)
+    xP3e3, xQ3e3, xPQ3e3, _, _ = basis_3e(Montgomery_coeff(a24_3), CofactorWRT3, ExponentOfThree, global_data)
+    eval_points = [xP3e3, xQ3e3, xPQ3e3]
     if a == 1
         xK2d = ladder3pt(b, xP2e3, xQ2e3, xPQ2e3, a24_3)
-        eval_point = xQ2e3
+        is_both && push!(eval_points, xQ2e3)
     else
         xK2d = ladder3pt(a, xQ2e3, xP2e3, xPQ2e3, a24_3)
-        eval_point = xP2e3
+        is_both && push!(eval_points, xP2e3)
     end
-    a24d, images = two_e_iso(a24_3, xK2d, ExponentOfTwo, [eval_point], StrategiesDim1Two[ExponentOfTwo])
-    xK_dual2 = images[1]
+    a24d, images = two_e_iso(a24_3, xK2d, ExponentOfTwo, eval_points, StrategiesDim1Two[ExponentOfTwo])
+    if is_both
+        xP3e_d, xQ3e_d, xPQ3e_d, xK_dual2 = images
+    else
+        xP3e_d, xQ3e_d, xPQ3e_d = images
+    end
 
     # 2^e2-isogeny: E0 -> E2 and 3^e3-isogeny: E2 -> Ed s.t. the kernel of the composition is bar{alpha} + 2^e2*3^e3*O0
     K2 = kernel_generator(xP2e, xQ2e, xPQ2e, a24_0, involution(alpha), 2, ExponentOfTwo, E0_data.Matrices_2e)
     a24_2, images = two_e_iso(a24_0, K2, ExponentOfTwo, [xP3e, xQ3e, xPQ3e], StrategiesDim1Two[ExponentOfTwo])
     xP3e2, xQ3e2, xPQ3e2 = images
     a, b = kernel_coefficients(involution(alpha), 3, ExponentOfThree, E0_data.Matrices_3e)
+    xP2e2, xQ2e2, xPQ2e2, _ = basis_2e(Montgomery_coeff(a24_2), CofactorWRT2, global_data)
+    eval_points = [xP2e2, xQ2e2, xPQ2e2]
     if a == 1
         xK3d = ladder3pt(b, xP3e2, xQ3e2, xPQ3e2, a24_2)
-        eval_point = xQ3e2
+        push!(eval_points, xQ3e2)
     else
         xK3d = ladder3pt(a, xQ3e2, xP3e2, xPQ3e2, a24_2)
-        eval_point = xP3e2
+        push!(eval_points, xP3e2)
     end
-    a24dd, images = three_e_iso(a24_2, xK3d, ExponentOfThree, [eval_point], StrategiesDim1Three[ExponentOfThree])
+    a24dd, images = three_e_iso(a24_2, xK3d, ExponentOfThree, eval_points, StrategiesDim1Three[ExponentOfThree])
     images = IsomorphismMontgomery(a24dd, a24d, images)
-    xK_dual3 = images[1]
+    xP2e_d, xQ2e_d, xPQ2e_d, xK_dual3 = images
 
     # 3^e3-isogeny: E3 -> E, the latter part of 3^(2e3)-isogeny from E0 with kernel alpha + 3^(2e3)*O0
-    a24_3d, images = two_e_iso(a24d, xK_dual2, ExponentOfTwo, [xK_dual3], StrategiesDim1Two[ExponentOfTwo])
-    images = IsomorphismMontgomery(a24_3d, a24_3, images)
-    xK = images[1]
+    a, b = ec_bi_dlog_one_point(a24d, xK_dual3, BasisData(xP3e_d, xQ3e_d, xPQ3e_d), 3, ExponentOfThree)
+    if a == 1
+        xK = ladder3pt(b, xP3e3, xQ3e3, xPQ3e3, a24_3)
+    else
+        xK = ladder3pt(a, xQ3e3, xP3e3, xPQ3e3, a24_3)
+    end
     a24, images = three_e_iso(a24_3, xK, ExponentOfThree, [xP2e3, xQ2e3, xPQ2e3], StrategiesDim1Three[ExponentOfThree])
-    xP2e_d, xQ2e_d, xPQ2e_d = images
+    xP2e3d, xQ2e3d, xPQ2e3d = images
     J3 = LeftIdeal(alpha, three_to_e3^2)
-    !is_both && return a24_3, a24, K3, xK, xP2e3, xQ2e3, xPQ2e3, xP2e_d, xQ2e_d, xPQ2e_d, J3
+    !is_both && return a24_3, a24, K3, xK, xP2e3, xQ2e3, xPQ2e3, xP2e3d, xQ2e3d, xPQ2e3d, J3
 
     # 2^e2-isogeny: E2 -> E, the latter part of 2^(2e2)-isogeny from E0 with kernel bar{alpha} + 2^(2e2)*O0
-    a24_2d, images = three_e_iso(a24d, xK_dual3, ExponentOfThree, [xK_dual2], StrategiesDim1Three[ExponentOfThree])
-    images = IsomorphismMontgomery(a24_2d, a24_2, images)
-    xK = images[1]
+    a, b = ec_bi_dlog_one_point(a24d, xK_dual2, BasisData(xP2e_d, xQ2e_d, xPQ2e_d), 2, ExponentOfTwo)
+    if a == 1
+        xK = ladder3pt(b, xP2e2, xQ2e2, xPQ2e2, a24_2)
+    else
+        xK = ladder3pt(a, xQ2e2, xP2e2, xPQ2e2, a24_2)
+    end
     a24d, images = two_e_iso(a24_2, xK, ExponentOfTwo, [xP3e2, xQ3e2, xPQ3e2], StrategiesDim1Two[ExponentOfTwo])
     images = IsomorphismMontgomery(a24d, a24, images)
-    xP3e_d, xQ3e_d, xPQ3e_d = images
+    xP3e2d, xQ3e2d, xPQ3e2d = images
     J2 = LeftIdeal(involution(alpha), two_to_e2^2)
-    return a24, xP2e_d, xQ2e_d, xPQ2e_d, xP3e_d, xQ3e_d, xPQ3e_d, J3, J2, alpha
+    return a24, xP2e3d, xQ2e3d, xPQ2e3d, xP3e2d, xQ3e2d, xPQ3e2d, J3, J2, alpha
 end
