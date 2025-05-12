@@ -73,22 +73,12 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         alpha = div(alpha, f2)
         q = div(q, f2^2)
 
-        # compute (q', e_dim1, e_dim2) s.t. q = q' * 2^e_dim1 and q' < 2^e_dim2
+        # compute (q', e_dim1, e_dim2) s.t. q = q' * 2^e_dim1 and e_dim2 = ExponentOfTwo - e_dim1
         e_dim1 = valuation(q, 2)
         two_to_e_dim1 = BigInt(1) << e_dim1
         qd = q >> e_dim1
-        e_dim2 = 0
-        two_to_e_dim2 = BigInt(1)
-        while two_to_e_dim2 < qd
-            e_dim2 += 1
-            two_to_e_dim2 <<= 1
-        end
-        e = ExponentOfTwo - e_dim1 - e_dim2
-        if e >= 2
-            e_dim2_torsion = e_dim2 + 2
-        else
-            e_dim2_torsion = e_dim2
-        end
+        e_dim2 = ExponentOfTwo - e_dim1
+        two_to_e_dim2 = BigInt(1) << e_dim2
 
         # compute the image of phi_rsp(P2com, Q2com)
         c = invmod(three_to_e3^2 * ChallengeDegree, two_to_e2)
@@ -114,7 +104,6 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
             xQ2aux = ladder(BigInt(3)^div(e3_dim1, 2), xQ2aux, a24aux)
             xPQ2aux = ladder(BigInt(3)^div(e3_dim1, 2), xPQ2aux, a24aux)
         end
-        a24aux, (xP2aux, xQ2aux, xPQ2aux) = Montgomery_normalize(a24aux, [xP2aux, xQ2aux, xPQ2aux])
         Aaux = Montgomery_coeff(a24aux)
         xP2aux_fix, xQ2aux_fix, xPQ2aux_fix, hint_aux = basis_2e(Aaux, CofactorWRT2, global_data)
         n1, n2, n3, n4 = ec_bi_dlog(a24aux, BasisData(xP2aux, xQ2aux, xPQ2aux), BasisData(xP2aux_fix, xQ2aux_fix, xPQ2aux_fix), 2, ExponentOfTwo)
@@ -133,8 +122,6 @@ function signing(pk::Vector{UInt8}, sk, m::String, global_data::GlobalData)
         sign[idx:idx+ChallengeByteLength-1] = integer_to_bytes(chl, ChallengeByteLength)
         idx += ChallengeByteLength
         sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim1, DegreeExponentByteLength)
-        idx += DegreeExponentByteLength
-        sign[idx:idx+DegreeExponentByteLength-1] = integer_to_bytes(e_dim2, DegreeExponentByteLength)
         idx += DegreeExponentByteLength
         sign[idx:idx+Dim2KernelCoeffByteLength-1] = integer_to_bytes(Mrsp[1, 1], Dim2KernelCoeffByteLength)
         idx += Dim2KernelCoeffByteLength
@@ -218,8 +205,6 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     idx += ChallengeByteLength
     e_dim1 = Int(bytes_to_integer(sign[idx:idx+DegreeExponentByteLength-1]))
     idx += DegreeExponentByteLength
-    e_dim2 = Int(bytes_to_integer(sign[idx:idx+DegreeExponentByteLength-1]))
-    idx += DegreeExponentByteLength
     Mrsp = Matrix{BigInt}(undef, 2, 2)
     Mrsp[1, 1] = bytes_to_integer(sign[idx:idx+Dim2KernelCoeffByteLength-1])
     idx += Dim2KernelCoeffByteLength
@@ -231,11 +216,7 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     idx += Dim2KernelCoeffByteLength
     hint_chl = Int(sign[idx])
     hint_aux = Int(sign[idx+1])
-    if ExponentOfTwo - e_dim1 - e_dim2 >= 2
-        e_dim2_torsion = e_dim2 + 2
-    else
-        e_dim2_torsion = e_dim2
-    end
+    e_dim2 = ExponentOfTwo - e_dim1
 
     # compute Echl
     xP3pk, xQ3pk, xPQ3pk = basis_3e_from_hint(Apk, CofactorWRT3, hint1pk, hint2pk, global_data)
@@ -264,17 +245,17 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
         xP3check = xKchl_dual 
         xP2chl_d, xQ2chl_d, xPQ2chl_d = xP2chl, xQ2chl, xPQ2chl
     end
-    xP2chl_d = xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
-    xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
-    xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2_torsion)
+    xP2chl_d = xDBLe(xP2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2)
+    xQ2chl_d = xDBLe(xQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2)
+    xPQ2chl_d = xDBLe(xPQ2chl_d, a24chl_d, ExponentOfTwo - e_dim1 - e_dim2)
 
     # compute the deterministic basis on Eaux
     a24aux = A_to_a24(Aaux)
     xP2aux, xQ2aux, xPQ2aux = basis_2e_from_hint(Aaux, CofactorWRT2, hint_aux, global_data)
     check_aux(Aaux, xP2aux, xQ2aux) || return false
-    xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
-    xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
-    xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2_torsion)
+    xP2aux = xDBLe(xP2aux, a24aux, ExponentOfTwo - e_dim2)
+    xQ2aux = xDBLe(xQ2aux, a24aux, ExponentOfTwo - e_dim2)
+    xPQ2aux = xDBLe(xPQ2aux, a24aux, ExponentOfTwo - e_dim2)
 
     # dim2 isogeny
     K1 = CouplePoint(xP2chl_d, xP2aux)
@@ -282,19 +263,8 @@ function verify(pk::Vector{UInt8}, sign::Vector{UInt8}, m::String, global_data::
     K12 = CouplePoint(xPQ2chl_d, xPQ2aux)
     O = infinity_point(global_data.Fp2)
     eval_point = [CouplePoint(xP3check, O)]
-    if e_dim2_torsion > e_dim2
-        xP1 = xDBLe(K1[1], a24chl_d, 2)
-        xQ1 = xDBLe(K2[1], a24chl_d, 2)
-        xPQ1 = xDBLe(K12[1], a24chl_d, 2)
-        xP2 = xDBLe(K1[2], a24aux, 2)
-        xQ2 = xDBLe(K2[2], a24aux, 2)
-        xPQ2 = xDBLe(K12[2], a24aux, 2)
-        check_isotropic(a24chl_d, a24aux, xP1, xQ1, xPQ1, xP2, xQ2, xPQ2, e_dim2) || return false
-        Es, image_dim2 = product_isogeny(a24chl_d, a24aux, K1, K2, K12, eval_point, e_dim2, StrategiesDim2[e_dim2])
-    else
-        check_isotropic(a24chl_d, a24aux, K1[1], K2[1], K12[1], K1[2], K2[2], K12[2], e_dim2) || return false
-        Es, image_dim2 = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, eval_point, e_dim2, StrategiesDim2[e_dim2])
-    end
+    check_isotropic(a24chl_d, a24aux, K1[1], K2[1], K12[1], K1[2], K2[2], K12[2], e_dim2) || return false
+    Es, image_dim2 = product_isogeny_sqrt(a24chl_d, a24aux, K1, K2, K12, eval_point, e_dim2, StrategiesDim2[e_dim2])
 
     # check
     for i in 1:2
