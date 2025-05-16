@@ -1,12 +1,14 @@
 # input: odd integer d s.t. 2^e_dim2 - d is not divisible by 3, a point xK in E0 of order 3^e3
 # output: the codomain of a random (d(2^e2 - d))-isogeny f, [c]f(xK),
-#    and [d^{-1}](f(P2e), f(Q2e)), where c in some integer not divisible by 3
+#    and [d^{-1}](f([2^(e2-e_dim_2)]P2e), f([2^(e2-e_dim_2)]Q2e)), where c in some integer not divisible by 3
 function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::GlobalData) where T <: RingElem
     E0_data = global_data.E0_data
     a24_0 = E0_data.a24_0
     xP2e, xQ2e, xPQ2e = E0_data.basis2e.xP, E0_data.basis2e.xQ, E0_data.basis2e.xPQ
     xP3e, xQ3e, xPQ3e = E0_data.basis3e.xP, E0_data.basis3e.xQ, E0_data.basis3e.xPQ
     two_to_e_dim2 = BigInt(1) << e_dim2
+    e_dim1 = ExponentOfTwo - e_dim2
+    two_to_e_dim1 = BigInt(1) << e_dim1
 
     # To distinguish the image of the dim2 isogeny by the 3^e3-Weil pairing,
     # we require d neq 2^e_dim2 - d mod 3^e3
@@ -16,12 +18,16 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     # we decompose alpha = hat(phi)*hat(rho)*tau, where deg(phi) = 3^e3, deg(rho) = 2^e2 - d, deg(tau) = d
     alpha = Quaternion_0
     while gcd(alpha) != 1
-        alpha, _ = FullRepresentInteger(d*(two_to_e_dim2 - d)*three_to_e3)
+        alpha, _ = FullRepresentInteger(d*(two_to_e_dim2 - d)*three_to_e3*two_to_e_dim1)
     end
     
-    # (3^e3)-isogeny phi: E0 -> Ed
-    K = kernel_generator(xP3e, xQ3e, xPQ3e, a24_0, involution(alpha), 3, ExponentOfThree, E0_data.Matrices_3e)
-    a24d, images = three_e_iso(a24_0, K, ExponentOfThree, [xP2e, xQ2e, xPQ2e], StrategiesDim1Three[ExponentOfThree])
+    # (3^e3*2^e_dim1)-isogeny phi: E0 -> Ed
+    K2 = kernel_generator(xP2e, xQ2e, xPQ2e, a24_0, involution(alpha), 2, e_dim1, E0_data.Matrices_2e)
+    K2 = xDBLe(K2, a24_0, ExponentOfTwo - e_dim1)
+    K3 = kernel_generator(xP3e, xQ3e, xPQ3e, a24_0, involution(alpha), 3, ExponentOfThree, E0_data.Matrices_3e)
+    a24d, images = two_e_iso(a24_0, K2, e_dim1, [K3, xP2e, xQ2e, xPQ2e])
+    K3, xP2d, xQ2d, xPQ2d = images
+    a24d, images = three_e_iso(a24d, K3, ExponentOfThree, [xP2d, xQ2d, xPQ2d], StrategiesDim1Three[ExponentOfThree])
 
     # (Pd, Qd) = [d^{-1}]hat(rho)*tau(P2, Q2) = [(3^e3 * d)^{-1}]phi*alpha(P2e, Q2e)
     xPd, xQd, xPQd = images
@@ -39,32 +45,14 @@ function ComposedRandIsog(d::BigInt, e_dim2::Int, xK::Proj1{T}, global_data::Glo
     eval_points = [OP3e_d, OQ3e_d, OPQ3e_d, KO]
 
     # (2^e_dim2, 2^e_dim2)-isogeny
-    # the kernel of the (2^e_dim2, 2^e_dim2)-isogeny is [2^(e2 - e_dim2)]<(P2e, Pd), (Q2e, Qd)>
-    if ExponentOfTwo - e_dim2 >= 2
-        xK11 = xDBLe(xP2e, a24_0, ExponentOfTwo - e_dim2 - 2)
-        xK12 = xDBLe(xPd, a24d, ExponentOfTwo - e_dim2 - 2)
-        xK21 = xDBLe(xQ2e, a24_0, ExponentOfTwo - e_dim2 - 2)
-        xK22 = xDBLe(xQd, a24d, ExponentOfTwo - e_dim2 - 2)
-        xK121 = xDBLe(xPQ2e, a24_0, ExponentOfTwo - e_dim2 - 2)
-        xK122 = xDBLe(xPQd, a24d, ExponentOfTwo - e_dim2 - 2)
-        K1 = CouplePoint(xK11, xK12)
-        K2 = CouplePoint(xK21, xK22)
-        K12 = CouplePoint(xK121, xK122)
-
-        Es, images = product_isogeny(a24_0, a24d, K1, K2, K12, eval_points, e_dim2, StrategiesDim2[e_dim2])
-    else 
-        xK11 = xDBLe(xP2e, a24_0, ExponentOfTwo - e_dim2)
-        xK12 = xDBLe(xPd, a24d, ExponentOfTwo - e_dim2)
-        xK21 = xDBLe(xQ2e, a24_0, ExponentOfTwo - e_dim2)
-        xK22 = xDBLe(xQd, a24d, ExponentOfTwo - e_dim2)
-        xK121 = xDBLe(xPQ2e, a24_0, ExponentOfTwo - e_dim2)
-        xK122 = xDBLe(xPQd, a24d, ExponentOfTwo - e_dim2)
-        K1 = CouplePoint(xK11, xK12)
-        K2 = CouplePoint(xK21, xK22)
-        K12 = CouplePoint(xK121, xK122)
-
-        Es, images = product_isogeny_sqrt(a24_0, a24d, K1, K2, K12, eval_points, e_dim2, StrategiesDim2[e_dim2])
-    end
+    # the kernel of the (2^e_dim2, 2^e_dim2)-isogeny is [2^(e2 - e_dim2 - e_dim1)]<(P2e, Pd), (Q2e, Qd)>
+    xK11 = xDBLe(xP2e, a24_0, ExponentOfTwo - e_dim2)
+    xK21 = xDBLe(xQ2e, a24_0, ExponentOfTwo - e_dim2)
+    xK121 = xDBLe(xPQ2e, a24_0, ExponentOfTwo - e_dim2)
+    K1 = CouplePoint(xK11, xPd)
+    K2 = CouplePoint(xK21, xQd)
+    K12 = CouplePoint(xK121, xPQd)
+    Es, images = product_isogeny_sqrt(a24_0, a24d, K1, K2, K12, eval_points, e_dim2, StrategiesDim2[e_dim2])
 
     idx = 1
     a24 = A_to_a24(Es[idx])
@@ -123,31 +111,13 @@ function PushRandIsog(d::BigInt, a24m::Proj1{T}, xK1::Proj1{T}, xK2::Proj1{T},
     eval_points = [xP2mO, xQ2mO, xPQ2mO, xK2O]
 
     # (2^e_dim2, 2^e_dim2)-isogeny
-    if ExponentOfTwo - e_dim2 >= 2
-        xK11 = xDBLe(xP2m, a24m, ExponentOfTwo - e_dim2 - 2)
-        xK12 = xDBLe(xP2md, a24md, ExponentOfTwo - e_dim2 - 2)
-        xK21 = xDBLe(xQ2m, a24m, ExponentOfTwo - e_dim2 - 2)
-        xK22 = xDBLe(xQ2md, a24md, ExponentOfTwo - e_dim2 - 2)
-        xK121 = xDBLe(xPQ2m, a24m, ExponentOfTwo - e_dim2 - 2)
-        xK122 = xDBLe(xPQ2md, a24md, ExponentOfTwo - e_dim2 - 2)
-        K1 = CouplePoint(xK11, xK12)
-        K2 = CouplePoint(xK21, xK22)
-        K12 = CouplePoint(xK121, xK122)
-
-        Es, images = product_isogeny(a24m, a24md, K1, K2, K12, eval_points, e_dim2, StrategiesDim2[e_dim2])
-    else
-        xK11 = xDBLe(xP2m, a24m, ExponentOfTwo - e_dim2)
-        xK12 = xDBLe(xP2md, a24md, ExponentOfTwo - e_dim2)
-        xK21 = xDBLe(xQ2m, a24m, ExponentOfTwo - e_dim2)
-        xK22 = xDBLe(xQ2md, a24md, ExponentOfTwo - e_dim2)
-        xK121 = xDBLe(xPQ2m, a24m, ExponentOfTwo - e_dim2)
-        xK122 = xDBLe(xPQ2md, a24md, ExponentOfTwo - e_dim2)
-        K1 = CouplePoint(xK11, xK12)
-        K2 = CouplePoint(xK21, xK22)
-        K12 = CouplePoint(xK121, xK122)
-
-        Es, images = product_isogeny_sqrt(a24m, a24md, K1, K2, K12, eval_points, e_dim2, StrategiesDim2[e_dim2])
-    end
+    xK11 = xDBLe(xP2m, a24m, ExponentOfTwo - e_dim2)
+    xK21 = xDBLe(xQ2m, a24m, ExponentOfTwo - e_dim2)
+    xK121 = xDBLe(xPQ2m, a24m, ExponentOfTwo - e_dim2)
+    K1 = CouplePoint(xK11, xP2md)
+    K2 = CouplePoint(xK21, xQ2md)
+    K12 = CouplePoint(xK121, xPQ2md)
+    Es, images = product_isogeny_sqrt(a24m, a24md, K1, K2, K12, eval_points, e_dim2, StrategiesDim2[e_dim2])
 
     idx = 1
     a24mm = A_to_a24(Es[idx])
